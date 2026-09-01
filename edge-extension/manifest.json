@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "DeskFish · 隐形播放器、漫画与电子书",
-  "version": "0.11.0",
-  "description": "替换网页媒体、播放视频与小游戏，并通过随包本地引擎或在线接口阅读漫画和 TXT 电子书。",
+  "version": "0.12.0",
+  "description": "替换网页媒体、播放视频与小游戏，并通过随包本地引擎阅读漫画、本地 TXT、中文网络小说公开章节和在线公版书。",
   "homepage_url": "https://github.com/onguoin/DeskFish",
   "permissions": [
     "activeTab",
@@ -18,6 +18,9 @@
     "https://api.mangadex.org/*",
     "https://uploads.mangadex.org/*",
     "https://komiic.com/*",
+    "https://www.gutenberg.org/*",
+    "https://zh.wikisource.org/*",
+    "https://en.wikisource.org/*",
     "http://127.0.0.1:47653/*"
   ],
   "optional_host_permissions": [

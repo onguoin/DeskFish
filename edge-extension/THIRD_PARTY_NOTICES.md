@@ -1,5 +1,15 @@
 # Third-party notices
 
+## Free-book API integrations
+
+- Project Gutenberg official OPDS catalog: https://www.gutenberg.org/ebooks/search.opds/
+- Chinese Wikisource MediaWiki API: https://zh.wikisource.org/w/api.php
+- English Wikisource MediaWiki API: https://en.wikisource.org/w/api.php
+- Qidian public search/catalog/chapter pages (through the bundled local parser): https://m.qidian.com/
+- Open-source behavior reference: https://github.com/cis-india/wikisource-reader
+
+DeskFish independently implements the catalog, MediaWiki, text normalization, and chapter-offset clients. It does not bundle books from these services. Content is requested only after a user searches or selects a work and is then stored in that user's Edge profile. The source work's public-domain or free-license terms remain applicable.
+
 ## Warrior – Sword Out
 
 - Creator: jpneok

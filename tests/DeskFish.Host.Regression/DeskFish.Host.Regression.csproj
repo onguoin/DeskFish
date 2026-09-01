@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\windows-host\Models.cs" Link="Models.cs" />
+    <Compile Include="..\..\windows-host\LocalCache.cs" Link="LocalCache.cs" />
+    <Compile Include="..\..\windows-host\Sources\BaoziChapterParser.cs" Link="Sources\BaoziChapterParser.cs" />
+    <Compile Include="..\..\windows-host\Sources\INovelSource.cs" Link="Sources\INovelSource.cs" />
+    <Compile Include="..\..\windows-host\Sources\NovelChapterSplitter.cs" Link="Sources\NovelChapterSplitter.cs" />
+    <Compile Include="..\..\windows-host\Sources\GutenbergOpdsNovelSource.cs" Link="Sources\GutenbergOpdsNovelSource.cs" />
+    <Compile Include="..\..\windows-host\Sources\QidianNovelSource.cs" Link="Sources\QidianNovelSource.cs" />
+  </ItemGroup>
+</Project>

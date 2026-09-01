@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>DeskFish novel provider browser regression</title></head>
+<body>
+  <h1 id="result">RUNNING</h1>
+  <pre id="details"></pre>
+  <script src="../edge-extension/ebook/chapter-parser.js"></script>
+  <script src="../edge-extension/novel/providers.js"></script>
+  <script>
+    try {
+      const api = globalThis.DeskFishNovelProviders;
+      const trimmed = api.trimGutenbergBoilerplate("header\n*** START OF THE PROJECT GUTENBERG EBOOK DEMO ***\nCHAPTER I Start\nHello world.\n*** END OF THE PROJECT GUTENBERG EBOOK DEMO ***\nfooter");
+      const split = api.splitReadableText(trimmed);
+      const segments = api.buildSegmentBook([
+        { id: "one", title: "第一回 起始", text: "正文一。" },
+        { id: "two", title: "第二回 继续", text: "正文二。" }
+      ]);
+      const assertions = [
+        [api.sources.length === 3, "three direct sources"],
+        [split.chapters.some((chapter) => chapter.title.startsWith("CHAPTER I")), "English chapter"],
+        [split.text.includes("Hello world."), "English spaces preserved"],
+        [!split.text.includes("PROJECT GUTENBERG"), "boilerplate removed"],
+        [segments.chapters.length === 2, "segment chapters"],
+        [segments.chapters[1].offset > segments.chapters[0].offset, "ascending offsets"]
+      ];
+      const failures = assertions.filter(([passed]) => !passed).map(([, label]) => label);
+      document.querySelector("#details").textContent = JSON.stringify({ split, segments }, null, 2);
+      document.querySelector("#result").textContent = failures.length ? `FAIL: ${failures.join(", ")}` : "PASS";
+    } catch (error) {
+      document.querySelector("#result").textContent = `FAIL: ${error.stack || error}`;
+    }
+  </script>
+</body>
+</html>

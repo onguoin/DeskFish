@@ -24,6 +24,16 @@ DeskFish 是一条藏在浏览器边上的小鱼，也是给上班摸鱼、午�
 
 > 请在不影响工作、遵守所在组织制度以及内容来源条款的前提下使用。DeskFish 不内置或转售影视、直播、漫画内容。
 
+## 演示
+
+<p align="center">
+  <a href="https://github.com/onguoin/DeskFish/releases/download/v0.12.0/DeskFish-v0.12.0-demo.mp4">
+    <img src="docs/deskfish-demo.gif" width="760" alt="DeskFish 功能演示">
+  </a>
+</p>
+
+<p align="center">点击演示动图可查看高清 MP4 视频。</p>
+
 ## 功能
 
 - **网页媒体替换**：选择图片或视频区域，替换为 Bilibili 视频、虎牙直播、自定义图片、漫画或小游戏。
@@ -31,7 +41,8 @@ DeskFish 是一条藏在浏览器边上的小鱼，也是给上班摸鱼、午�
 - **独立内容区域**：网页没有合适素材时，可以在左侧、右侧或浮动位置创建自己的区域。
 - **浏览器广告窗**：独立于网页的右下角小窗，切换标签页也能保留；外观模拟老式页游广告，内部内容可替换。
 - **全局快捷键**：不要求焦点停在播放器上，即可选择区域、切换上一条/下一条、隐藏控制栏或恢复页面。
-- **TXT 电子书**：自动处理大文件，按被替换段落的字符容量分页；支持固定字符数、百分比步进、方向键、点击后滚轮逐行阅读和进度记忆。
+- **小说与 TXT 电子书**：本地 TXT 流式分片并自动识别章节；支持章节跳转、固定字符数、百分比步进、方向键、点击后滚轮逐行阅读和进度记忆。
+- **在线小说与公版书**：智能搜索会优先使用 EXE 内置的起点中文网公开章节解析器，也可在不运行 EXE 时直连 Project Gutenberg、中文维基文库和英文 Wikisource；选中的可读内容会缓存到本机。
 - **漫画阅读**：本地 CBZ/ZIP/图片文件夹、MangaDex、Komga、Kavita、LANraragi、Suwayomi，以及随 Windows 程序提供的本地来源。
 - **连续阅读与缓存**：保存搜索、漫画、章节、页码和电子书进度；漫画页默认预取当前页前后各 5 页，离开窗口后释放内存。
 - **自适应小游戏**：五子棋等小游戏会根据被替换区域自动缩放，小格子不会再塞入完整桌面布局。
@@ -49,7 +60,7 @@ DeskFish 是一条藏在浏览器边上的小鱼，也是给上班摸鱼、午�
 
 ## 下载与安装
 
-最新版本：[**下载 DeskFish for Windows x64**](https://github.com/onguoin/DeskFish/releases/latest/download/DeskFish-v0.11.0-Windows-x64.zip)
+最新版本：[**下载 DeskFish for Windows x64**](https://github.com/onguoin/DeskFish/releases/latest/download/DeskFish-v0.12.0-Windows-x64.zip)
 
 1. 解压下载的 ZIP，先运行 `DeskFish.exe`。它是自包含程序，不需要另装 Python、Node.js、Java、Docker 或 .NET。
 2. 在 Edge 打开 `edge://extensions`，开启右上角“开发人员模式”。
@@ -81,10 +92,19 @@ Windows 可能因为程序尚未购买代码签名证书而显示“未知发布
 
 在线站点可能改版、限流或限制部分地区访问。连接器只在用户主动搜索或阅读时请求数据，漫画图片不会被打包进 DeskFish。请遵守内容来源的服务条款与版权规则。
 
+## 小说来源
+
+- 本地 TXT 支持 UTF-8 与 GB18030/GBK，导入时边读取边识别“第几章/回/卷”、序章、番外及英文 `Chapter` 标题；识别不到时保留为单章“全文”。章节只是额外的字符偏移索引，不影响原有分片与阅读进度。
+- 在线小说内置三项无需 EXE 的免费官方接口：Project Gutenberg OPDS、中文维基文库 MediaWiki API、英文 Wikisource MediaWiki API。搜索后先查看章节列表，点选章节会把整本纯文本分片保存到 Edge 本地存储并定位过去，之后关闭弹窗或重启浏览器仍可直接续读。
+- `DeskFish.exe` 新增起点中文网公开页面解析器，能搜索《斗罗大陆》等中文网络小说，严格保持官方目录顺序；官方标记为公开的章节可以下载缓存，订阅章节只显示目录和状态，不会绕过付费阅读。
+- 小说来源默认使用“智能搜索”：中文关键词优先合并起点公开页面与中文维基文库结果，英文关键词优先使用 Gutenberg 与英文 Wikisource。也可在下拉框中固定某一个来源。
+- EXE 中的 Project Gutenberg 连接器仍保留为本地磁盘缓存方案；所有本地解析逻辑都已编进 `DeskFish.exe`，不要求额外安装 Node、Python、Java、Legado 或浏览器插件。
+- Windows 端采用独立的 `INovelSource` 接口，后续可继续加入有明确授权的 API 或站点适配器，而不需要修改网页阅读器。
+
 ## 数据、缓存与隐私
 
 - 扩展设置、阅读记录和电子书内容保存在 Edge 扩展本地存储中。
-- 本地漫画元数据缓存在 `%LOCALAPPDATA%\DeskFrame\manga-cache-v2`，超过 14 天自动清理；保留旧目录名是为了兼容早期版本的数据。
+- 本地漫画元数据和在线公版书正文缓存在 `%LOCALAPPDATA%\DeskFrame\manga-cache-v2`，超过 14 天自动清理；保留旧目录名是为了兼容早期版本的数据。
 - 漫画图片使用窗口内存缓存，默认最多保留当前页前后各 5 页；离开阅读器会撤销 Blob URL 并释放缓存。
 - Windows 本地服务只监听 `127.0.0.1:47653`，不会对局域网或公网开放端口。
 
@@ -96,20 +116,20 @@ Windows 可能因为程序尚未购买代码签名证书而显示“未知发布
 ./build.ps1
 ```
 
-输出位于 `artifacts/DeskFish-v0.11.0-Windows-x64`。Edge 扩展本身无需编译，直接加载 `edge-extension` 文件夹即可。
+输出位于 `artifacts/DeskFish-v0.12.0-Windows-x64`。Edge 扩展本身无需编译，直接加载 `edge-extension` 文件夹即可。
 
 ## 项目结构
 
 ```text
 DeskFish/
 ├─ edge-extension/   # Edge Manifest V3 扩展
-├─ windows-host/     # 本地漫画服务与托盘程序
+├─ windows-host/     # 本地漫画/小说服务与托盘程序
 ├─ docs/             # Logo 与界面截图
 └─ build.ps1         # Windows x64 打包脚本
 ```
 
 ## 许可证
 
-DeskFish 以 [MIT License](LICENSE) 开源。第三方资源、依赖和漫画连接器参考见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+DeskFish 以 [MIT License](LICENSE) 开源。第三方资源、依赖和内容连接器说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 项目作者：[@onguoin](https://github.com/onguoin)

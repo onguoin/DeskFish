@@ -1,5 +1,6 @@
 (() => {
   const storage = globalThis.DeskFrameComicStorage;
+  const chapterList = globalThis.DeskFishComicChapterList;
   const elements = {};
   let notify = () => {};
   let opdsHistory = [];
@@ -8,6 +9,7 @@
   let seriesCache = {};
   const BRIDGE_ENDPOINT = "http://127.0.0.1:47653";
   const MAX_CACHED_SERIES = 8;
+  const CHAPTER_ORDER_SCHEMA = 2;
 
   const providerNames = {
     local: "本地文件",
@@ -39,46 +41,8 @@
     await chrome.storage.local.set({ comicUiState: uiState });
   }
 
-  function chapterOrder(title, explicitNumber, explicitPart, fallback) {
-    const numberMatch = String(title || "").match(/(?:第\s*)?(\d+(?:\.\d+)?)\s*[话話章回卷]/i);
-    const hasExplicitNumber = explicitNumber !== null && explicitNumber !== undefined && explicitNumber !== "";
-    const number = hasExplicitNumber && Number.isFinite(Number(explicitNumber))
-      ? Number(explicitNumber)
-      : numberMatch ? Number(numberMatch[1]) : Number.NaN;
-    const numericPart = String(title || "").match(/[（(]\s*(\d+)\s*[）)]/);
-    const hasExplicitPart = explicitPart !== null && explicitPart !== undefined && explicitPart !== "";
-    let part = hasExplicitPart && Number.isFinite(Number(explicitPart)) ? Number(explicitPart) : 0;
-    if (!part && numericPart) part = Number(numericPart[1]);
-    if (!part && /(?:上篇|上集|\(上\)|（上）)/.test(title || "")) part = 1;
-    if (!part && /(?:中篇|中集|\(中\)|（中）)/.test(title || "")) part = 2;
-    if (!part && /(?:下篇|下集|\(下\)|（下）)/.test(title || "")) part = 3;
-    return { hasNumber: Number.isFinite(number), number, part, fallback };
-  }
-
   function normalizeSeriesChapters(chapters) {
-    const seen = new Set();
-    return Array.from(chapters || [])
-      .map((chapter, index) => ({
-        ...chapter,
-        _order: chapterOrder(chapter.title, chapter.number, chapter.part, index),
-        _sequence: Number.isFinite(Number(chapter.sequence)) ? Number(chapter.sequence) : null
-      }))
-      .filter((chapter) => {
-        const key = String(chapter.selectionId || chapter.id || chapter.title || "").trim();
-        if (!key || seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      })
-      .sort((left, right) => {
-        if (left._sequence !== null && right._sequence !== null) return left._sequence - right._sequence;
-        if (left._order.hasNumber !== right._order.hasNumber) return left._order.hasNumber ? 1 : -1;
-        if (left._order.hasNumber && left._order.number !== right._order.number) return left._order.number - right._order.number;
-        const leftPart = left._order.part || Number.MAX_SAFE_INTEGER;
-        const rightPart = right._order.part || Number.MAX_SAFE_INTEGER;
-        if (leftPart !== rightPart) return leftPart - rightPart;
-        return left._order.fallback - right._order.fallback;
-      })
-      .map(({ _order, _sequence, ...chapter }) => chapter);
+    return chapterList.normalize(chapters);
   }
 
   function selectionFromSeries(series, chapterIndex) {
@@ -102,6 +66,7 @@
     const normalized = {
       ...series,
       chapters: normalizeSeriesChapters(series.chapters),
+      chapterOrderSchema: CHAPTER_ORDER_SCHEMA,
       updatedAt: Date.now()
     };
     seriesCache = { ...seriesCache, [normalized.key]: normalized };
@@ -126,16 +91,22 @@
     currentManga = { ...(series.meta || {}), provider: series.provider, seriesKey: series.key, title: series.title };
     elements.comicMangaBack.hidden = false;
     elements.comicMangaResults.replaceChildren();
-    const indexed = series.chapters.map((chapter, index) => ({ chapter, index })).reverse();
+    const indexed = series.chapters.map((chapter, index) => ({ chapter, index }));
     for (let start = 0; start < indexed.length; start += 80) {
       const fragment = document.createDocumentFragment();
       for (const { chapter, index } of indexed.slice(start, start + 80)) {
-        fragment.append(makeButton(
+        const button = makeButton(
           "comic-result comic-chapter",
-          chapter.title || "未命名章节",
+          chapter.title ?? "",
           chapter.details || `${index + 1} / ${series.chapters.length}`,
           () => void chooseSeriesChapter(series, index)
-        ));
+        );
+        const ordinal = document.createElement("span");
+        ordinal.className = "comic-chapter-ordinal";
+        ordinal.textContent = chapterList.ordinal(index);
+        ordinal.setAttribute("aria-label", `列表序号 ${index + 1}`);
+        button.prepend(ordinal);
+        fragment.append(button);
       }
       elements.comicMangaResults.append(fragment);
       if (start + 80 < indexed.length) await new Promise(requestAnimationFrame);
@@ -590,7 +561,7 @@
       const chapters = Array.from(payload.chapters || []).map((chapter, index) => ({
         id: chapter.id,
         selectionId: `bridge:${sourceId}:${mangaId}:${chapter.id}`,
-        title: chapter.title || "未命名章节",
+        title: chapter.title ?? "",
         details: chapter.details || payload.source?.name || "本地漫画源",
         number: chapter.number,
         part: chapter.part,
@@ -840,9 +811,14 @@
     installListeners();
     const stored = await chrome.storage.local.get(["comicSelection", "comicUiState", "comicSeriesCache"]);
     const selection = stored.comicSelection || null;
-    seriesCache = stored.comicSeriesCache && typeof stored.comicSeriesCache === "object"
+    const storedSeries = stored.comicSeriesCache && typeof stored.comicSeriesCache === "object"
       ? stored.comicSeriesCache
       : {};
+    seriesCache = Object.fromEntries(Object.entries(storedSeries)
+      .filter(([, series]) => series?.chapterOrderSchema === CHAPTER_ORDER_SCHEMA));
+    if (Object.keys(seriesCache).length !== Object.keys(storedSeries).length) {
+      void chrome.storage.local.set({ comicSeriesCache: seriesCache });
+    }
     uiState = {
       provider: inferredProvider(selection),
       query: "",

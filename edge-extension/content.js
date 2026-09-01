@@ -3,7 +3,7 @@
     return;
   }
 
-  const BOOK_SCHEMA_VERSION = 2;
+  const SUPPORTED_BOOK_SCHEMA_VERSIONS = new Set([2, 3]);
   const BOOK_CHUNK_PREFIX = "ebookChunk:";
 
   const state = {
@@ -69,7 +69,7 @@
 
   function isChunkedBook(book) {
     return Boolean(book)
-      && book.schemaVersion === BOOK_SCHEMA_VERSION
+      && SUPPORTED_BOOK_SCHEMA_VERSIONS.has(book.schemaVersion)
       && typeof book.id === "string"
       && Number.isInteger(book.length)
       && book.length >= 0

@@ -10,7 +10,7 @@ internal static class Program
         using var singleInstance = new Mutex(true, MutexName, out var createdNew);
         if (!createdNew)
         {
-            MessageBox.Show("DeskFish 本地漫画引擎已经在运行。", "DeskFish", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("DeskFish 本地阅读引擎已经在运行。", "DeskFish", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
 
@@ -23,7 +23,7 @@ internal static class Program
         }
         catch (Exception error)
         {
-            MessageBox.Show($"本地漫画引擎启动失败：\n\n{error.Message}", "DeskFish", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show($"本地阅读引擎启动失败：\n\n{error.Message}", "DeskFish", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         finally
         {

@@ -24,6 +24,16 @@ When a page has no suitable area, DeskFish can create one on the left, right, or
 
 > Use DeskFish without disrupting your responsibilities, and follow your organisation's policies and each content provider's terms. DeskFish does not bundle or resell video, live-stream, or comic content.
 
+## Demo
+
+<p align="center">
+  <a href="https://github.com/onguoin/DeskFish/releases/download/v0.12.0/DeskFish-v0.12.0-demo.mp4">
+    <img src="docs/deskfish-demo.gif" width="760" alt="DeskFish feature demo">
+  </a>
+</p>
+
+<p align="center">Click the animated preview to watch the high-quality MP4 video.</p>
+
 ## Features
 
 - **Media replacement** — replace a selected image or video area with Bilibili, Huya Live, custom media, comics, or mini games.
@@ -31,7 +41,8 @@ When a page has no suitable area, DeskFish can create one on the left, right, or
 - **Custom regions** — create your own left, right, or floating area when the page has nothing suitable to replace.
 - **Browser ad window** — a browser-level bottom-right window styled after old-school game ads, with replaceable content and persistence across tabs.
 - **Global shortcuts** — pick an area, move to the previous or next item, hide controls, or restore the page without focusing the player.
-- **TXT ebook reader** — large files are split automatically; supports fixed-character or percentage steps, arrow keys, line-by-line wheel reading, and saved progress.
+- **Novels and TXT ebooks** — streams large local files into chunks, detects chapters automatically, and supports chapter jumps, percentage steps, arrow keys, line-by-line wheel reading, and saved progress.
+- **Online novels and public-domain books** — Smart Search prefers the bundled Qidian public-chapter parser for Chinese web fiction, while Project Gutenberg plus Chinese and English Wikisource remain available directly without the executable.
 - **Comic reader** — local CBZ/ZIP/image folders, MangaDex, Komga, Kavita, LANraragi, Suwayomi, and sources provided by the Windows local engine.
 - **Continuous reading and caching** — remembers searches, titles, chapters, pages, and ebook positions; prefetches five comic pages on each side and releases them when the reader closes.
 - **Responsive mini games** — Gomoku and other games scale down to the selected area instead of forcing a desktop-sized board into a tiny tile.
@@ -49,7 +60,7 @@ When a page has no suitable area, DeskFish can create one on the left, right, or
 
 ## Download and install
 
-Latest version: [**Download DeskFish for Windows x64**](https://github.com/onguoin/DeskFish/releases/latest/download/DeskFish-v0.11.0-Windows-x64.zip)
+Latest version: [**Download DeskFish for Windows x64**](https://github.com/onguoin/DeskFish/releases/latest/download/DeskFish-v0.12.0-Windows-x64.zip)
 
 1. Extract the ZIP and run `DeskFish.exe`. The release is self-contained; Python, Node.js, Java, Docker, and a separate .NET installation are not required.
 2. Open `edge://extensions` in Microsoft Edge and enable **Developer mode**.
@@ -81,10 +92,19 @@ Set additional shortcuts at `edge://extensions/shortcuts`. Ebook arrow keys and 
 
 Online sites may change, rate-limit traffic, or restrict access in some regions. Connectors request data only when the user searches or reads, and comic pages are never bundled with DeskFish. Follow each provider's terms and applicable copyright rules.
 
+## Novel sources
+
+- Local TXT import supports UTF-8 and GB18030/GBK. It detects common Chinese chapter headings, extras, prologues, and English `Chapter` headings while streaming; a book with no recognizable headings remains available as a single “Full text” chapter.
+- Three free official interfaces work without the executable: Project Gutenberg OPDS, Chinese Wikisource's MediaWiki API, and English Wikisource's MediaWiki API. Selecting a chapter imports the complete text into local Edge chunks and jumps there, so closing the popup or restarting the browser does not lose the book or reading position.
+- `DeskFish.exe` now includes a Qidian public-page parser. It can find Chinese web novels such as *Douluo Dalu*, preserves the official catalog order, downloads only chapters Qidian exposes as publicly readable, and labels subscription chapters without bypassing payment.
+- Smart Search combines Qidian with Chinese Wikisource for Chinese queries, and Gutenberg with English Wikisource for Latin-script queries. A specific source can still be selected manually.
+- The Project Gutenberg adapter remains available as a disk-cached fallback. All local parsing code is bundled into `DeskFish.exe`; Node, Python, Java, Legado, and additional browser extensions are not required.
+- The Windows host exposes a separate `INovelSource` adapter interface, allowing future licensed APIs or site adapters without changing the in-page reader.
+
 ## Data, cache, and privacy
 
 - Extension settings, reading history, and ebook content stay in local Edge extension storage.
-- Comic metadata is cached at `%LOCALAPPDATA%\DeskFrame\manga-cache-v2` and entries older than 14 days are removed. The legacy directory name is kept for data compatibility.
+- Comic metadata and downloaded public-domain book text are cached at `%LOCALAPPDATA%\DeskFrame\manga-cache-v2` and entries older than 14 days are removed. The legacy directory name is kept for data compatibility.
 - Comic images use an in-window memory cache containing up to five pages before and after the current page. Blob URLs are revoked when the reader closes.
 - The Windows service listens only on `127.0.0.1:47653`; it does not expose a LAN or public network port.
 
@@ -96,14 +116,14 @@ Windows 10/11 and the .NET 10 SDK are required:
 ./build.ps1
 ```
 
-The package is written to `artifacts/DeskFish-v0.11.0-Windows-x64`. The Edge extension needs no build step and can be loaded directly from `edge-extension`.
+The package is written to `artifacts/DeskFish-v0.12.0-Windows-x64`. The Edge extension needs no build step and can be loaded directly from `edge-extension`.
 
 ## Repository layout
 
 ```text
 DeskFish/
 ├─ edge-extension/   # Edge Manifest V3 extension
-├─ windows-host/     # Local comic service and tray app
+├─ windows-host/     # Local comic/novel service and tray app
 ├─ docs/             # Logo and screenshots
 └─ build.ps1         # Windows x64 packaging script
 ```

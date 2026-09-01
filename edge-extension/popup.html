@@ -173,7 +173,26 @@
         </label>
         <input id="bookInput" class="visually-hidden" type="file" accept=".txt,text/plain">
         <div id="bookInfo" class="book-info" aria-live="polite"></div>
-        <p class="reader-note">大文件会自动分片保存；按所选段落的非空白字符数显示，标点算一个，方向键按下方比例移动。</p>
+        <div id="bookChapterControls" class="book-chapter-controls" hidden>
+          <button id="previousBookChapterButton" class="quiet-action" type="button" aria-label="上一章">←</button>
+          <select id="bookChapterSelect" aria-label="电子书章节"></select>
+          <button id="nextBookChapterButton" class="quiet-action" type="button" aria-label="下一章">→</button>
+        </div>
+        <p class="reader-note">本地 TXT 会自动识别章节并分片保存；按所选段落的非空白字符数显示，标点算一个。</p>
+        <div class="novel-online-panel" aria-labelledby="novelOnlineTitle">
+          <div class="subsection-heading">
+            <h3 id="novelOnlineTitle">在线小说</h3>
+            <span>官方 API / 本地引擎</span>
+          </div>
+          <select id="novelSourceSelect" aria-label="在线小说来源"></select>
+          <div class="novel-search-row">
+            <input id="novelSearchInput" type="search" maxlength="100" placeholder="输入书名或作者">
+            <button id="novelSearchButton" class="secondary-action" type="button">搜索</button>
+          </div>
+          <button id="novelBackButton" class="text-action" type="button" hidden>← 返回搜索结果</button>
+          <div id="novelResults" class="novel-results" aria-live="polite"></div>
+          <p class="reader-note">智能搜索中文网文需运行 EXE；公版接口可直连。仅缓存来源公开返回的正文，订阅章节不会绕过。</p>
+        </div>
         <label class="reader-step-field" for="readerStepInput">
           <span>
             <strong>方向键翻页幅度</strong>
@@ -221,14 +240,18 @@
         <button id="shortcutsButton" class="shortcut-link" type="button">快捷键未生效？打开 Edge 快捷键设置</button>
         <div class="footer-meta">
           <a href="https://github.com/onguoin/DeskFish" target="_blank" rel="noreferrer">GitHub · DeskFish <span>↗</span></a>
-          <span>DeskFish v0.11.0</span>
+          <span>DeskFish v0.12.0</span>
         </div>
       </footer>
 
       <div id="status" class="status" role="status" aria-live="polite" hidden></div>
     </main>
     <script src="comic/storage.js"></script>
+    <script src="comic/chapter-list.js"></script>
     <script src="comic/manager.js"></script>
+    <script src="ebook/chapter-parser.js"></script>
+    <script src="novel/providers.js"></script>
+    <script src="novel/manager.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

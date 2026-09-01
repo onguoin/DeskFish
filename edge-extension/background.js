@@ -47,7 +47,7 @@ async function setKomiicReferrerRule(comicId, chapterId) {
 function isSupportedEbook(book) {
   if (!book || typeof book !== "object") return false;
   if (typeof book.text === "string") return true;
-  return book.schemaVersion === 2
+  return (book.schemaVersion === 2 || book.schemaVersion === 3)
     && typeof book.id === "string"
     && Number.isInteger(book.length)
     && book.length >= 0

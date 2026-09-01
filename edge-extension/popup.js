@@ -20,7 +20,8 @@ const MEDIA_LABELS = {
   comic: "漫画 · 按页阅读"
 };
 
-const BOOK_SCHEMA_VERSION = 2;
+const BOOK_SCHEMA_VERSION = 3;
+const SUPPORTED_BOOK_SCHEMA_VERSIONS = new Set([2, BOOK_SCHEMA_VERSION]);
 const BOOK_CHUNK_CHARACTERS = 64 * 1024;
 const FILE_READ_BYTES = 256 * 1024;
 const STORAGE_BATCH_SIZE = 256;
@@ -48,6 +49,10 @@ const elements = {
   playlist: document.querySelector("#playlist"),
   bookInput: document.querySelector("#bookInput"),
   bookInfo: document.querySelector("#bookInfo"),
+  bookChapterControls: document.querySelector("#bookChapterControls"),
+  bookChapterSelect: document.querySelector("#bookChapterSelect"),
+  previousBookChapterButton: document.querySelector("#previousBookChapterButton"),
+  nextBookChapterButton: document.querySelector("#nextBookChapterButton"),
   clearBookButton: document.querySelector("#clearBookButton"),
   readerStepInput: document.querySelector("#readerStepInput"),
   autoplayToggle: document.querySelector("#autoplayToggle"),
@@ -73,7 +78,7 @@ function readableCharacterCount(value) {
 
 function isChunkedBook(book) {
   return Boolean(book)
-    && book.schemaVersion === BOOK_SCHEMA_VERSION
+    && SUPPORTED_BOOK_SCHEMA_VERSIONS.has(book.schemaVersion)
     && typeof book.id === "string"
     && Number.isInteger(book.length)
     && book.length >= 0
@@ -81,6 +86,26 @@ function isChunkedBook(book) {
     && book.chunkSize > 0
     && Number.isInteger(book.chunkCount)
     && book.chunkCount >= 0;
+}
+
+function bookChapters(book = ebook) {
+  if (!Array.isArray(book?.chapters)) return [];
+  return book.chapters.filter((chapter) => (
+    chapter
+    && typeof chapter.title === "string"
+    && Number.isInteger(chapter.offset)
+    && chapter.offset >= 0
+    && chapter.offset < Math.max(1, getBookLength(book))
+  ));
+}
+
+function chapterIndexAtOffset(chapters, offset) {
+  let activeIndex = 0;
+  for (let index = 0; index < chapters.length; index += 1) {
+    if (chapters[index].offset > offset) break;
+    activeIndex = index;
+  }
+  return activeIndex;
 }
 
 function isSupportedBook(book) {
@@ -237,6 +262,8 @@ function renderBook() {
 
   if (!count) {
     elements.bookInfo.textContent = "尚未导入电子书";
+    elements.bookChapterControls.hidden = true;
+    elements.bookChapterSelect.replaceChildren();
     return;
   }
 
@@ -254,9 +281,34 @@ function renderBook() {
   if (Number.isFinite(ebook.fileSize)) details.push(formatBytes(ebook.fileSize));
   details.push(`${count.toLocaleString()} 字符`);
   if (isChunkedBook(ebook)) details.push(`${ebook.chunkCount.toLocaleString()} 个分片`);
+  const chapters = bookChapters();
+  if (chapters.length) details.push(`${chapters.length.toLocaleString()} 章`);
   details.push(`阅读位置 ${boundedOffset.toLocaleString()} · ${percent}%`);
   progress.textContent = details.join(" · ");
   elements.bookInfo.append(name, progress);
+
+  elements.bookChapterSelect.replaceChildren();
+  chapters.forEach((chapter, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = `${index + 1}. ${chapter.title || "未命名章节"}`;
+    elements.bookChapterSelect.append(option);
+  });
+  const activeIndex = chapters.length ? chapterIndexAtOffset(chapters, boundedOffset) : 0;
+  elements.bookChapterSelect.value = String(activeIndex);
+  elements.previousBookChapterButton.disabled = activeIndex <= 0;
+  elements.nextBookChapterButton.disabled = !chapters.length || activeIndex >= chapters.length - 1;
+  elements.bookChapterControls.hidden = !chapters.length;
+}
+
+async function jumpToBookChapter(index) {
+  const chapters = bookChapters();
+  const chapter = chapters[index];
+  if (!chapter) return;
+  ebookOffset = chapter.offset;
+  await chrome.storage.local.set({ ebookOffset });
+  renderBook();
+  showStatus(`已定位到第 ${index + 1} 章 · ${chapter.title || "未命名章节"}`);
 }
 
 async function sendMessage(message) {
@@ -403,6 +455,8 @@ async function writeBookChunks(file, encoding) {
   let chunkCount = 0;
   let characterCount = 0;
   let isFirstDecodedBlock = true;
+  const detector = globalThis.DeskFishEbookChapterParser?.createDetector();
+  if (!detector) throw new Error("电子书章节识别器没有加载");
 
   const writeChunk = async (characters) => {
     const text = characters.join("");
@@ -415,6 +469,16 @@ async function writeBookChunks(file, encoding) {
     characterCount += characters.length;
   };
 
+  const appendCharacters = async (characters) => {
+    if (!characters.length) return;
+    pendingCharacters = pendingCharacters.concat(characters);
+    while (pendingCharacters.length >= BOOK_CHUNK_CHARACTERS) {
+      const chunk = pendingCharacters.slice(0, BOOK_CHUNK_CHARACTERS);
+      pendingCharacters = pendingCharacters.slice(BOOK_CHUNK_CHARACTERS);
+      await writeChunk(chunk);
+    }
+  };
+
   const appendDecodedText = async (decodedText) => {
     let text = decodedText;
     if (isFirstDecodedBlock) {
@@ -422,12 +486,7 @@ async function writeBookChunks(file, encoding) {
       isFirstDecodedBlock = false;
     }
     if (!text) return;
-    pendingCharacters = pendingCharacters.concat(Array.from(text.replace(/\s+/g, "")));
-    while (pendingCharacters.length >= BOOK_CHUNK_CHARACTERS) {
-      const chunk = pendingCharacters.slice(0, BOOK_CHUNK_CHARACTERS);
-      pendingCharacters = pendingCharacters.slice(BOOK_CHUNK_CHARACTERS);
-      await writeChunk(chunk);
-    }
+    await appendCharacters(detector.push(text));
   };
 
   await chrome.storage.local.set({ ebookImport: { id: bookId, chunkCount: 0 } });
@@ -438,9 +497,11 @@ async function writeBookChunks(file, encoding) {
       const buffer = await file.slice(offset, end).arrayBuffer();
       await appendDecodedText(decoder.decode(buffer, { stream: true }));
       const percent = Math.round((end / Math.max(1, file.size)) * 100);
-      showStatus(`正在自动分片… ${percent}% · ${chunkCount.toLocaleString()} 片`);
+      showStatus(`正在识别章节并分片… ${percent}% · ${chunkCount.toLocaleString()} 片`);
     }
     await appendDecodedText(decoder.decode());
+    const detected = detector.finish();
+    await appendCharacters(detected.characters);
     if (pendingCharacters.length) await writeChunk(pendingCharacters);
     if (!characterCount) throw new Error("这个 TXT 文件没有可阅读文字");
 
@@ -453,6 +514,7 @@ async function writeBookChunks(file, encoding) {
       chunkCount,
       fileSize: file.size,
       encoding,
+      chapters: detected.chapters,
       importedAt: Date.now()
     };
   } catch (error) {
@@ -462,8 +524,113 @@ async function writeBookChunks(file, encoding) {
   }
 }
 
-async function importBook(file) {
+function normalizeImportedChapters(chapters, length) {
+  const output = [];
+  for (const chapter of Array.isArray(chapters) ? chapters : []) {
+    const offset = Number.isInteger(chapter?.offset) ? chapter.offset : -1;
+    if (offset < 0 || offset >= Math.max(1, length)) continue;
+    const next = {
+      id: String(chapter.id || `chapter:${output.length}`),
+      title: String(chapter.title || "未命名章节").replace(/\s+/g, " ").trim() || "未命名章节",
+      offset,
+      length: Number.isInteger(chapter.length) ? Math.max(0, chapter.length) : 0,
+      sequence: output.length
+    };
+    if (output.at(-1)?.offset === next.offset) continue;
+    output.push(next);
+  }
+  return output.length ? output : [{ id: "chapter:0", title: "全文", offset: 0, length, sequence: 0 }];
+}
+
+async function writeOnlineBookChunks(payload) {
+  const bookId = typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  const sourceText = String(payload?.text || "");
+  if (!sourceText.length) throw new Error("在线小说正文为空");
+  let chunkCount = 0;
+  let characterCount = 0;
+  let pendingCharacters = [];
+  await chrome.storage.local.set({ ebookImport: { id: bookId, chunkCount: 0 } });
+  try {
+    const flush = async () => {
+      if (!pendingCharacters.length) return;
+      const text = pendingCharacters.join("");
+      const nextChunkCount = chunkCount + 1;
+      await chrome.storage.local.set({
+        ebookImport: { id: bookId, chunkCount: nextChunkCount },
+        [bookChunkKey(bookId, chunkCount)]: text
+      });
+      chunkCount = nextChunkCount;
+      characterCount += pendingCharacters.length;
+      pendingCharacters = [];
+    };
+    for (let codeUnitOffset = 0; codeUnitOffset < sourceText.length;) {
+      const codePoint = sourceText.codePointAt(codeUnitOffset);
+      pendingCharacters.push(String.fromCodePoint(codePoint));
+      codeUnitOffset += codePoint > 0xffff ? 2 : 1;
+      if (pendingCharacters.length < BOOK_CHUNK_CHARACTERS) continue;
+      await flush();
+      const percent = Math.round((codeUnitOffset / sourceText.length) * 100);
+      showStatus(`正在保存在线小说… ${percent}% · ${chunkCount.toLocaleString()} 片`);
+    }
+    await flush();
+    return {
+      schemaVersion: BOOK_SCHEMA_VERSION,
+      id: bookId,
+      name: `${String(payload.title || "未命名小说").trim()}.txt`,
+      length: characterCount,
+      chunkSize: BOOK_CHUNK_CHARACTERS,
+      chunkCount,
+      fileSize: new Blob([sourceText]).size,
+      encoding: "utf-8",
+      chapters: normalizeImportedChapters(payload.chapters, characterCount),
+      origin: {
+        type: "online",
+        sourceId: String(payload.source?.id || ""),
+        sourceName: String(payload.source?.name || "在线小说"),
+        novelId: String(payload.id || ""),
+        author: String(payload.author || "")
+      },
+      importedAt: Date.now()
+    };
+  } catch (error) {
+    await removeChunkRange(bookId, chunkCount).catch(() => {});
+    await chrome.storage.local.remove("ebookImport").catch(() => {});
+    throw error;
+  }
+}
+
+async function commitImportedBook(nextBook, initialOffset = 0) {
   const previousBook = ebook;
+  const cleanupMarker = isChunkedBook(previousBook)
+    ? { id: previousBook.id, chunkCount: previousBook.chunkCount }
+    : null;
+  await chrome.storage.local.set({
+    ebook: nextBook,
+    ebookOffset: initialOffset,
+    ebookImport: null,
+    ebookCleanup: cleanupMarker
+  });
+  ebook = nextBook;
+  ebookOffset = initialOffset;
+  renderBook();
+  try {
+    await removeBookChunks(previousBook);
+    await chrome.storage.local.remove(["ebookImport", "ebookCleanup"]);
+  } catch {
+    // The cleanup marker lets the next popup session finish removing old chunks.
+  }
+}
+
+async function importOnlineBook(payload, chapterIndex) {
+  const nextBook = await writeOnlineBookChunks(payload);
+  const initialOffset = nextBook.chapters[chapterIndex]?.offset || 0;
+  await commitImportedBook(nextBook, initialOffset);
+  showStatus(`已保存《${payload.title || "未命名小说"}》· ${nextBook.chapters.length.toLocaleString()} 章，并定位到第 ${chapterIndex + 1} 章`);
+}
+
+async function importBook(file) {
   elements.bookInput.disabled = true;
   elements.readerButton.disabled = true;
   elements.clearBookButton.disabled = true;
@@ -471,30 +638,10 @@ async function importBook(file) {
   try {
     const encoding = await detectTextEncoding(file);
     const nextBook = await writeBookChunks(file, encoding);
-    const cleanupMarker = isChunkedBook(previousBook)
-      ? { id: previousBook.id, chunkCount: previousBook.chunkCount }
-      : null;
-
-    await chrome.storage.local.set({
-      ebook: nextBook,
-      ebookOffset: 0,
-      ebookImport: null,
-      ebookCleanup: cleanupMarker
-    });
-
-    ebook = nextBook;
-    ebookOffset = 0;
-    renderBook();
-
-    try {
-      await removeBookChunks(previousBook);
-      await chrome.storage.local.remove(["ebookImport", "ebookCleanup"]);
-    } catch {
-      // The cleanup marker lets the next popup session finish removing old chunks.
-    }
+    await commitImportedBook(nextBook, 0);
 
     showStatus(
-      `已导入 ${nextBook.length.toLocaleString()} 个字符，自动分成 ${nextBook.chunkCount.toLocaleString()} 片`
+      `已导入 ${nextBook.length.toLocaleString()} 个字符，识别 ${nextBook.chapters.length.toLocaleString()} 章，分成 ${nextBook.chunkCount.toLocaleString()} 片`
     );
   } finally {
     elements.bookInput.disabled = false;
@@ -531,6 +678,7 @@ async function initialize() {
   renderMediaConfig();
   renderBook();
   comicSelection = await globalThis.DeskFrameComicManager.initialize({ showStatus });
+  await globalThis.DeskFishNovelManager.initialize({ showStatus, importBookText: importOnlineBook });
   updateActivationAvailability();
 }
 
@@ -614,6 +762,19 @@ elements.bookInput.addEventListener("change", async () => {
   } finally {
     elements.bookInput.value = "";
   }
+});
+elements.bookChapterSelect.addEventListener("change", async () => {
+  await jumpToBookChapter(Number.parseInt(elements.bookChapterSelect.value, 10));
+});
+elements.previousBookChapterButton.addEventListener("click", async () => {
+  const chapters = bookChapters();
+  const current = chapterIndexAtOffset(chapters, ebookOffset);
+  await jumpToBookChapter(current - 1);
+});
+elements.nextBookChapterButton.addEventListener("click", async () => {
+  const chapters = bookChapters();
+  const current = chapterIndexAtOffset(chapters, ebookOffset);
+  await jumpToBookChapter(current + 1);
 });
 elements.clearButton.addEventListener("click", async () => {
   playlist = [];

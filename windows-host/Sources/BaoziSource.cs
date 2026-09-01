@@ -1,5 +1,4 @@
 using System.Net;
-using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace DeskFrame.Host.Sources;
@@ -14,29 +13,12 @@ internal sealed class BaoziSource : IMangaSource, IDisposable
         RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled,
         TimeSpan.FromSeconds(2));
 
-    private static readonly Regex ChapterPattern = new(
-        "<a\\s+href=\"(?<href>/user/page_direct\\?[^\"]+)\"[^>]*class=\"comics-chapters__item\"[^>]*>.*?<span[^>]*>(?<title>.*?)</span>",
-        RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled,
-        TimeSpan.FromSeconds(3));
-
     private static readonly Regex ImagePattern = new(
         "\"url\"\\s*:\\s*\"(?<url>https[^\"]+)\"",
         RegexOptions.IgnoreCase | RegexOptions.Compiled,
         TimeSpan.FromSeconds(2));
 
     private static readonly Regex TagPattern = new("<[^>]+>", RegexOptions.Compiled, TimeSpan.FromSeconds(1));
-    private static readonly Regex ChapterNumberPattern = new(
-        "(?:第\\s*)?(?<number>\\d+(?:\\.\\d+)?)\\s*[話话章回卷]",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled,
-        TimeSpan.FromSeconds(1));
-    private static readonly Regex NumericPartPattern = new(
-        "[（(]\\s*(?<part>\\d+)\\s*[）)]",
-        RegexOptions.Compiled,
-        TimeSpan.FromSeconds(1));
-    private static readonly Regex PromotionPattern = new(
-        "月票|贏大獎|赢大奖|抽獎|抽奖|活動入口|活动入口",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled,
-        TimeSpan.FromSeconds(1));
     private readonly HttpClient _client;
 
     public BaoziSource()
@@ -90,43 +72,7 @@ internal sealed class BaoziSource : IMangaSource, IDisposable
         if (title.EndsWith("漫画 - 包子漫画", StringComparison.Ordinal)) title = title[..^9].Trim();
         if (string.IsNullOrWhiteSpace(title)) title = "未命名漫画";
 
-        var parsedChapters = new List<(string Id, string Title, double? Number, int Part, int SourceOrder)>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var seenTitles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var sourceOrder = 0;
-        foreach (Match match in ChapterPattern.Matches(html))
-        {
-            var id = Decode(match.Groups["href"].Value);
-            var chapterTitle = CleanText(match.Groups["title"].Value);
-            if (!seen.Add(id) || string.IsNullOrWhiteSpace(chapterTitle) || PromotionPattern.IsMatch(chapterTitle)) continue;
-            var titleKey = Regex.Replace(chapterTitle, "\\s+", "");
-            if (!seenTitles.Add(titleKey)) continue;
-            var (number, part) = ChapterOrder(chapterTitle);
-            parsedChapters.Add((id, chapterTitle, number, part, sourceOrder++));
-        }
-
-        // Long-running series pages also mix lottery notices, previews, and event links into the
-        // chapter container. Once a real numbered catalogue is present, omit those non-chapters
-        // so "previous/next chapter" cannot jump into an advertisement.
-        if (parsedChapters.Count(chapter => chapter.Number.HasValue) >= 10)
-        {
-            parsedChapters = parsedChapters.Where(chapter => chapter.Number.HasValue).ToList();
-        }
-
-        var chapters = parsedChapters
-            .OrderBy(chapter => chapter.Number.HasValue ? 1 : 0)
-            .ThenBy(chapter => chapter.Number ?? double.MinValue)
-            .ThenBy(chapter => chapter.Part == 0 ? int.MaxValue : chapter.Part)
-            .ThenBy(chapter => chapter.Title, StringComparer.Create(CultureInfo.GetCultureInfo("zh-CN"), false))
-            .ThenBy(chapter => chapter.SourceOrder)
-            .Select((chapter, index) => new MangaChapter(
-                chapter.Id,
-                chapter.Title,
-                "包子漫画",
-                chapter.Number,
-                chapter.Part,
-                index))
-            .ToArray();
+        var chapters = BaoziChapterParser.Parse(html);
 
         return new MangaDetails(
             path,
@@ -134,25 +80,6 @@ internal sealed class BaoziSource : IMangaSource, IDisposable
             AbsoluteUrl(MetaContent(html, "og:image")),
             MetaContent(html, "description"),
             chapters);
-    }
-
-    private static (double? Number, int Part) ChapterOrder(string title)
-    {
-        double? number = null;
-        var numberMatch = ChapterNumberPattern.Match(title);
-        if (numberMatch.Success
-            && double.TryParse(numberMatch.Groups["number"].Value, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var parsed))
-        {
-            number = parsed;
-        }
-
-        var part = 0;
-        var numericPart = NumericPartPattern.Match(title);
-        if (numericPart.Success) int.TryParse(numericPart.Groups["part"].Value, out part);
-        else if (Regex.IsMatch(title, "(?:上篇|上集|\\(上\\)|（上）)", RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1))) part = 1;
-        else if (Regex.IsMatch(title, "(?:中篇|中集|\\(中\\)|（中）)", RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1))) part = 2;
-        else if (Regex.IsMatch(title, "(?:下篇|下集|\\(下\\)|（下）)", RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1))) part = 3;
-        return (number, Math.Max(0, part));
     }
 
     public async Task<ChapterPages> GetPagesAsync(string mangaId, string chapterId, CancellationToken cancellationToken)

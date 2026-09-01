@@ -6,6 +6,11 @@
   const token = params.get("deskframe_token") || "";
   const PAGE_CACHE_RADIUS = 5;
   const PREFETCH_CONCURRENCY = 3;
+  const CURRENT_PAGE_CACHE_BYTES = 64 * 1024 * 1024;
+  const NEXT_CHAPTER_CACHE_BYTES = 32 * 1024 * 1024;
+  const NEXT_CHAPTER_PREFETCH_PAGES = 5;
+  const NEXT_CHAPTER_CONCURRENCY = 2;
+  const CHAPTER_ORDER_SCHEMA = 2;
   const elements = {
     reader: document.querySelector("#reader"),
     title: document.querySelector("#title"),
@@ -30,13 +35,20 @@
     page: 0,
     pageCount: 0,
     loader: null,
-    archiveReader: null,
+    currentAbortController: null,
     objectUrls: new Map(),
+    pageBytes: new Map(),
     pageLoads: new Map(),
+    prefetchedPageValues: new Map(),
+    prefetchedPageLoads: new Map(),
+    nextChapterCache: null,
+    nextChapterGeneration: 0,
+    nextChapterRequestKey: "",
     cacheCenter: 0,
     cacheGeneration: 0,
     prefetchGeneration: 0,
     renderVersion: 0,
+    loadGeneration: 0,
     fitMode: "contain",
     wheelTotal: 0,
     wheelTimer: 0,
@@ -52,7 +64,8 @@
 
   function currentSeries() {
     const key = state.selection?.seriesKey;
-    return key ? state.seriesCache?.[key] || null : null;
+    const series = key ? state.seriesCache?.[key] || null : null;
+    return series?.chapterOrderSchema === CHAPTER_ORDER_SCHEMA ? series : null;
   }
 
   function currentChapterIndex(series = currentSeries()) {
@@ -128,13 +141,21 @@
       await zipReader.close();
       throw new Error("压缩包里没有找到漫画图片");
     }
-    state.archiveReader = zipReader;
+    let closed = false;
     return {
       count: entries.length,
-      load: async (index) => {
+      load: async (index, signal) => {
+        if (signal?.aborted) throw new DOMException("漫画页请求已取消", "AbortError");
         const entry = entries[index];
         if (!entry) throw new Error("漫画页不存在");
-        return entry.getData(new zip.BlobWriter(mimeForName(entry.filename)), { useWebWorkers: false });
+        const blob = await entry.getData(new zip.BlobWriter(mimeForName(entry.filename)), { useWebWorkers: false });
+        if (signal?.aborted) throw new DOMException("漫画页请求已取消", "AbortError");
+        return blob;
+      },
+      dispose: async () => {
+        if (closed) return;
+        closed = true;
+        await zipReader.close().catch(() => {});
       }
     };
   }
@@ -145,8 +166,10 @@
     if (book.kind === "images") {
       return {
         count: book.pageCount,
-        load: async (index) => {
+        load: async (index, signal) => {
+          if (signal?.aborted) throw new DOMException("漫画页请求已取消", "AbortError");
           const page = await storage.getPage(book.id, index);
+          if (signal?.aborted) throw new DOMException("漫画页请求已取消", "AbortError");
           if (!page?.blob) throw new Error("本地漫画页缺失");
           return page.blob;
         }
@@ -156,8 +179,8 @@
     return openZip(new zip.BlobReader(book.archive));
   }
 
-  async function mangadexLoader(selection) {
-    const response = await fetch(`https://api.mangadex.org/at-home/server/${encodeURIComponent(selection.chapterId)}`);
+  async function mangadexLoader(selection, signal) {
+    const response = await fetch(`https://api.mangadex.org/at-home/server/${encodeURIComponent(selection.chapterId)}`, { signal });
     if (!response.ok) throw new Error(`MangaDex 图片服务器返回 ${response.status}`);
     const payload = await response.json();
     const chapter = payload.chapter || {};
@@ -179,7 +202,7 @@
       imagesByChapterId(chapterId: $chapterId) { id kid height width }
     }`;
 
-  async function komiicLoader(selection) {
+  async function komiicLoader(selection, signal) {
     const ruleResponse = await chrome.runtime.sendMessage({
       type: "deskframe:komiic-referrer",
       comicId: selection.comicId,
@@ -190,6 +213,7 @@
       method: "POST",
       credentials: "include",
       headers: { "content-type": "application/json" },
+      signal,
       body: JSON.stringify({
         operationName: "imagesByChapterId",
         query: KOMIIC_IMAGES_QUERY,
@@ -204,11 +228,12 @@
     return {
       count: images.length,
       prefetch: false,
-      load: async (index) => {
+      load: async (index, pageSignal) => {
         const kid = images[index]?.kid;
         if (!kid) throw new Error("Komiic 漫画页不存在");
         const pageResponse = await fetch(`https://komiic.com/api/image/${encodeURIComponent(kid)}`, {
-          credentials: "include"
+          credentials: "include",
+          signal: pageSignal
         });
         if (!pageResponse.ok) {
           throw new Error(pageResponse.status === 400 || pageResponse.status === 429
@@ -220,7 +245,7 @@
     };
   }
 
-  async function bridgeLoader(selection) {
+  async function bridgeLoader(selection, signal) {
     const endpoint = selection.bridgeEndpoint || "http://127.0.0.1:47653";
     const params = new URLSearchParams({
       source: selection.sourceId || "",
@@ -229,8 +254,9 @@
     });
     let response;
     try {
-      response = await fetch(`${endpoint}/api/v1/chapter?${params}`);
-    } catch {
+      response = await fetch(`${endpoint}/api/v1/chapter?${params}`, { signal });
+    } catch (error) {
+      if (error?.name === "AbortError") throw error;
       throw new Error("未连接本地漫画引擎，请先运行 DeskFish.exe");
     }
     if (!response.ok) {
@@ -244,10 +270,10 @@
     return {
       count: pages.length,
       prefetch: true,
-      load: async (index) => {
+      load: async (index, pageSignal) => {
         const pageUrl = pages[index];
         if (!pageUrl) throw new Error("本地漫画页不存在");
-        const pageResponse = await fetch(pageUrl);
+        const pageResponse = await fetch(pageUrl, { signal: pageSignal });
         if (!pageResponse.ok) {
           let detail = "";
           try { detail = (await pageResponse.json())?.error || ""; } catch { /* Status fallback. */ }
@@ -258,13 +284,14 @@
     };
   }
 
-  async function opdsLoader(selection) {
+  async function opdsLoader(selection, signal) {
     const headers = await sessionHeaders(selection);
+    if (signal?.aborted) throw new DOMException("漫画章节请求已取消", "AbortError");
     if (selection.pageTemplate && Number.isInteger(selection.pageCount) && selection.pageCount > 0) {
       return {
         count: selection.pageCount,
-        load: async (index) => {
-          const response = await fetch(replaceTemplate(selection.pageTemplate, index), { headers });
+        load: async (index, pageSignal) => {
+          const response = await fetch(replaceTemplate(selection.pageTemplate, index), { headers, signal: pageSignal });
           if (!response.ok) throw new Error(`漫画页读取失败（${response.status}）`);
           return response.blob();
         }
@@ -279,29 +306,66 @@
     return openZip(reader);
   }
 
-  async function buildLoader(selection) {
+  async function buildLoader(selection, signal) {
+    if (signal?.aborted) throw new DOMException("漫画章节请求已取消", "AbortError");
     if (selection.provider === "local") return localLoader(selection);
-    if (selection.provider === "mangadex") return mangadexLoader(selection);
-    if (selection.provider === "komiic") return komiicLoader(selection);
-    if (selection.provider === "bridge") return bridgeLoader(selection);
-    if (selection.provider === "opds") return opdsLoader(selection);
+    if (selection.provider === "mangadex") return mangadexLoader(selection, signal);
+    if (selection.provider === "komiic") return komiicLoader(selection, signal);
+    if (selection.provider === "bridge") return bridgeLoader(selection, signal);
+    if (selection.provider === "opds") return opdsLoader(selection, signal);
     throw new Error("尚未选择漫画来源");
   }
 
   function releaseObjectUrls() {
     for (const url of state.objectUrls.values()) URL.revokeObjectURL(url);
     state.objectUrls.clear();
+    state.pageBytes.clear();
   }
 
-  async function closeLoader() {
+  function clearPrefetchedPageValues() {
+    state.prefetchedPageValues.clear();
+    state.prefetchedPageLoads.clear();
+  }
+
+  async function disposeLoader(loader) {
+    await loader?.dispose?.().catch(() => {});
+  }
+
+  async function closeCurrentLoader() {
     state.cacheGeneration += 1;
     state.prefetchGeneration += 1;
+    state.currentAbortController?.abort();
+    state.currentAbortController = null;
     state.pageLoads.clear();
+    clearPrefetchedPageValues();
     releaseObjectUrls();
-    if (state.archiveReader) {
-      await state.archiveReader.close().catch(() => {});
-      state.archiveReader = null;
-    }
+    const loader = state.loader;
+    state.loader = null;
+    state.pageCount = 0;
+    await disposeLoader(loader);
+  }
+
+  async function disposeChapterCache(cache) {
+    if (!cache) return;
+    cache.disposed = true;
+    cache.controller.abort();
+    cache.values.clear();
+    cache.loads.clear();
+    const loader = cache.loader || await cache.loaderPromise.catch(() => null);
+    await disposeLoader(loader);
+  }
+
+  async function releaseNextChapterCache() {
+    const cache = state.nextChapterCache;
+    state.nextChapterCache = null;
+    state.nextChapterGeneration += 1;
+    await disposeChapterCache(cache);
+  }
+
+  async function closeReaderResources() {
+    state.loadGeneration += 1;
+    state.renderVersion += 1;
+    await Promise.all([closeCurrentLoader(), releaseNextChapterCache()]);
   }
 
   function showError(message) {
@@ -344,25 +408,56 @@
       if (Math.abs(page - center) <= PAGE_CACHE_RADIUS) continue;
       URL.revokeObjectURL(oldUrl);
       state.objectUrls.delete(page);
+      state.pageBytes.delete(page);
     }
+
+    let totalBytes = Array.from(state.pageBytes.values()).reduce((sum, size) => sum + size, 0);
+    if (totalBytes <= CURRENT_PAGE_CACHE_BYTES) return;
+    const candidates = Array.from(state.objectUrls.keys())
+      .filter((page) => page !== center)
+      .sort((left, right) => Math.abs(right - center) - Math.abs(left - center));
+    for (const page of candidates) {
+      if (totalBytes <= CURRENT_PAGE_CACHE_BYTES) break;
+      const url = state.objectUrls.get(page);
+      if (url) URL.revokeObjectURL(url);
+      state.objectUrls.delete(page);
+      totalBytes -= state.pageBytes.get(page) || 0;
+      state.pageBytes.delete(page);
+    }
+  }
+
+  function materializePageValue(index, value) {
+    if (typeof value === "string") return value;
+    const url = URL.createObjectURL(value);
+    if (Math.abs(index - state.cacheCenter) > PAGE_CACHE_RADIUS) {
+      URL.revokeObjectURL(url);
+      throw new Error("漫画页已离开预读窗口");
+    }
+    state.objectUrls.set(index, url);
+    state.pageBytes.set(index, Number(value?.size) || 0);
+    trimPageCache(state.cacheCenter);
+    return url;
   }
 
   async function pageSource(index) {
     if (state.objectUrls.has(index)) return state.objectUrls.get(index);
+    if (state.prefetchedPageValues.has(index)) {
+      const value = state.prefetchedPageValues.get(index);
+      state.prefetchedPageValues.delete(index);
+      return materializePageValue(index, value);
+    }
+    if (state.prefetchedPageLoads.has(index)) {
+      await state.prefetchedPageLoads.get(index).catch(() => {});
+      if (state.prefetchedPageValues.has(index)) return pageSource(index);
+    }
     if (state.pageLoads.has(index)) return state.pageLoads.get(index);
     const generation = state.cacheGeneration;
     const loader = state.loader;
+    const signal = state.currentAbortController?.signal;
     const loading = (async () => {
-      const value = await loader.load(index);
+      const value = await loader.load(index, signal);
       if (generation !== state.cacheGeneration || loader !== state.loader) throw new Error("漫画页请求已过期");
-      if (typeof value === "string") return value;
-      const url = URL.createObjectURL(value);
-      if (Math.abs(index - state.cacheCenter) > PAGE_CACHE_RADIUS) {
-        URL.revokeObjectURL(url);
-        throw new Error("漫画页已离开预读窗口");
-      }
-      state.objectUrls.set(index, url);
-      return url;
+      return materializePageValue(index, value);
     })();
     state.pageLoads.set(index, loading);
     try {
@@ -373,7 +468,10 @@
   }
 
   function prefetchWindow(center) {
-    if (!state.visible || state.loader?.prefetch === false) return;
+    if (!state.visible || state.loader?.prefetch === false) {
+      if (state.visible) void prefetchNextChapter();
+      return;
+    }
     const generation = ++state.prefetchGeneration;
     const targets = [];
     for (let distance = 1; distance <= PAGE_CACHE_RADIUS; distance += 1) {
@@ -387,8 +485,103 @@
         await pageSource(index).catch(() => {});
       }
     };
-    void Promise.all(Array.from({ length: Math.min(PREFETCH_CONCURRENCY, targets.length) }, worker))
+    const currentWindow = Promise.all(Array.from({ length: Math.min(PREFETCH_CONCURRENCY, targets.length) }, worker))
       .finally(() => trimPageCache(state.cacheCenter));
+    void currentWindow.then(() => {
+      if (generation === state.prefetchGeneration && state.visible) return prefetchNextChapter();
+      return undefined;
+    });
+  }
+
+  function selectionCacheKey(selection) {
+    return String(selection?.id || "");
+  }
+
+  async function prefetchChapterPage(cache, index) {
+    if (cache.disposed || cache.values.has(index)) return;
+    if (cache.loads.has(index)) return cache.loads.get(index);
+    const loading = (async () => {
+      const loader = await cache.loaderPromise;
+      if (cache.disposed || cache.controller.signal.aborted) return;
+      let value = await loader.load(index, cache.controller.signal);
+      if (typeof value === "string") {
+        const response = await fetch(value, { signal: cache.controller.signal });
+        if (!response.ok) throw new Error(`下一话图片预读失败（${response.status}）`);
+        value = await response.blob();
+      }
+      if (cache.disposed || cache.controller.signal.aborted) return;
+      const size = Number(value?.size) || 0;
+      if (cache.bytes + size > NEXT_CHAPTER_CACHE_BYTES && cache.values.size > 0) return;
+      cache.values.set(index, value);
+      cache.bytes += size;
+    })();
+    cache.loads.set(index, loading);
+    try {
+      await loading;
+    } finally {
+      if (cache.loads.get(index) === loading) cache.loads.delete(index);
+    }
+  }
+
+  async function prefetchNextChapter() {
+    if (!state.visible) return;
+    const selection = adjacentSelection(1);
+    if (!selection) {
+      await releaseNextChapterCache();
+      return;
+    }
+    const key = selectionCacheKey(selection);
+    if (state.nextChapterCache?.key === key) return;
+    if (state.nextChapterRequestKey === key) return;
+    state.nextChapterRequestKey = key;
+    try {
+      await releaseNextChapterCache();
+      if (!state.visible || selectionCacheKey(adjacentSelection(1)) !== key) return;
+
+      const generation = ++state.nextChapterGeneration;
+      const controller = new AbortController();
+      const cache = {
+        key,
+        selection,
+        controller,
+        generation,
+        loader: null,
+        loaderPromise: null,
+        values: new Map(),
+        loads: new Map(),
+        bytes: 0,
+        disposed: false,
+        promoted: false
+      };
+      cache.loaderPromise = buildLoader(selection, controller.signal).then(async (loader) => {
+        if (cache.disposed || controller.signal.aborted) {
+          await disposeLoader(loader);
+          throw new DOMException("下一话预读已取消", "AbortError");
+        }
+        cache.loader = loader;
+        return loader;
+      });
+      state.nextChapterCache = cache;
+
+      try {
+        const loader = await cache.loaderPromise;
+        if (cache.disposed || generation !== cache.generation || loader.prefetch === false) return;
+        const targets = Array.from({ length: Math.min(loader.count, NEXT_CHAPTER_PREFETCH_PAGES) }, (_, index) => index);
+        const worker = async () => {
+          while (targets.length && !cache.disposed && !controller.signal.aborted) {
+            const index = targets.shift();
+            await prefetchChapterPage(cache, index).catch(() => {});
+          }
+        };
+        await Promise.all(Array.from({ length: Math.min(NEXT_CHAPTER_CONCURRENCY, targets.length) }, worker));
+      } catch (error) {
+        if (error?.name !== "AbortError" && state.nextChapterCache === cache) {
+          cache.error = error;
+        }
+      }
+    } finally {
+      if (state.nextChapterRequestKey === key) state.nextChapterRequestKey = "";
+    }
   }
 
   async function persistProgress() {
@@ -429,15 +622,35 @@
       void persistProgress();
       prefetchWindow(index);
     } catch (error) {
-      if (version === state.renderVersion) showError(error.message || "漫画页读取失败");
+      if (version === state.renderVersion && state.visible && error?.name !== "AbortError") {
+        showError(error.message || "漫画页读取失败");
+      }
     }
   }
 
   async function loadSelection() {
+    const loadGeneration = ++state.loadGeneration;
     ++state.renderVersion;
-    await closeLoader();
     const stored = await storageGet("local", ["comicSelection", "comicProgress", "comicSettings", "comicSeriesCache"]);
-    state.selection = stored.comicSelection || null;
+    if (loadGeneration !== state.loadGeneration) return;
+    const incomingSelection = stored.comicSelection || null;
+    const prefetched = incomingSelection
+      && state.nextChapterCache?.key === selectionCacheKey(incomingSelection)
+      ? state.nextChapterCache
+      : null;
+    if (prefetched) {
+      state.nextChapterCache = null;
+      prefetched.promoted = true;
+    } else {
+      await releaseNextChapterCache();
+    }
+    await closeCurrentLoader();
+    if (loadGeneration !== state.loadGeneration) {
+      await disposeChapterCache(prefetched);
+      return;
+    }
+
+    state.selection = incomingSelection;
     state.seriesCache = stored.comicSeriesCache && typeof stored.comicSeriesCache === "object"
       ? stored.comicSeriesCache
       : {};
@@ -449,11 +662,39 @@
       updateHeader();
       return;
     }
+    if (!state.visible) {
+      await disposeChapterCache(prefetched);
+      elements.loading.hidden = false;
+      elements.loading.textContent = "阅读器已隐藏，悬停后继续加载";
+      elements.error.hidden = true;
+      updateHeader();
+      return;
+    }
     elements.loading.hidden = false;
     elements.loading.textContent = "正在读取漫画…";
     elements.error.hidden = true;
     try {
-      state.loader = await buildLoader(state.selection);
+      if (prefetched) {
+        state.currentAbortController = prefetched.controller;
+        state.prefetchedPageValues = prefetched.values;
+        state.prefetchedPageLoads = prefetched.loads;
+        try {
+          state.loader = await prefetched.loaderPromise;
+        } catch (error) {
+          if (error?.name === "AbortError") throw error;
+          await disposeChapterCache(prefetched);
+          state.prefetchedPageValues = new Map();
+          state.prefetchedPageLoads = new Map();
+          state.currentAbortController = new AbortController();
+          state.loader = await buildLoader(state.selection, state.currentAbortController.signal);
+        }
+      } else {
+        state.currentAbortController = new AbortController();
+        state.loader = await buildLoader(state.selection, state.currentAbortController.signal);
+      }
+      if (loadGeneration !== state.loadGeneration || state.currentAbortController?.signal.aborted) {
+        throw new DOMException("章节加载已取消", "AbortError");
+      }
       state.pageCount = Number(state.loader.count) || 0;
       if (!state.pageCount) throw new Error("这个章节没有漫画页");
       const remembered = stored.comicProgress?.[state.selection.id]?.page;
@@ -465,6 +706,7 @@
       updateHeader();
       await renderPage();
     } catch (error) {
+      if (loadGeneration !== state.loadGeneration || error?.name === "AbortError") return;
       state.pendingPage = "";
       state.switchingChapter = false;
       state.pageCount = 0;
@@ -561,13 +803,34 @@
     if (event.data.type === "deskframe:media-visibility") {
       state.visible = Boolean(event.data.visible);
       state.prefetchGeneration += 1;
-      if (state.visible) prefetchWindow(state.page);
+      if (state.visible) {
+        if (!state.loader) void loadSelection();
+        else {
+          if (!state.currentAbortController || state.currentAbortController.signal.aborted) {
+            state.currentAbortController = new AbortController();
+          }
+          prefetchWindow(state.page);
+        }
+      } else {
+        state.currentAbortController?.abort();
+        state.currentAbortController = null;
+        state.cacheGeneration += 1;
+        state.pageLoads.clear();
+        clearPrefetchedPageValues();
+        for (const [page, url] of state.objectUrls) {
+          if (page === state.page) continue;
+          URL.revokeObjectURL(url);
+          state.objectUrls.delete(page);
+          state.pageBytes.delete(page);
+        }
+        void releaseNextChapterCache();
+      }
     }
   });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local" && changes.comicSelection) void loadSelection();
   });
-  window.addEventListener("pagehide", () => { void closeLoader(); }, { once: true });
+  window.addEventListener("pagehide", () => { void closeReaderResources(); }, { once: true });
   elements.reader.focus({ preventScroll: true });
   void loadSelection();
 })();
