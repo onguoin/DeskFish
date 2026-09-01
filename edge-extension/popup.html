@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DeskFish</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="panel">
+      <header class="masthead">
+        <img class="brand-logo" src="assets/deskfish-64.png" alt="">
+        <div class="brand-copy">
+          <p class="eyebrow">STEALTH DESK COMPANION</p>
+          <h1>DeskFish <span>桌面鱼</span></h1>
+        </div>
+        <output id="countBadge" class="count-badge" aria-label="视频数量">0</output>
+        <span class="wake-line" aria-hidden="true"></span>
+      </header>
+
+      <section class="launch-pad" aria-labelledby="launchTitle">
+        <div class="section-heading">
+          <h2 id="launchTitle">页面替换</h2>
+          <span id="sourceHint">Bilibili · 横屏</span>
+        </div>
+        <label class="source-field" for="mediaTypeSelect">
+          <span>替换内容</span>
+          <select id="mediaTypeSelect">
+            <option value="bilibili">Bilibili 视频队列</option>
+            <option value="huya">虎牙直播间</option>
+            <option value="gomoku">五子棋 · 人机对战</option>
+            <option value="2048">2048</option>
+            <option value="snake">贪吃蛇</option>
+            <option value="comic">漫画阅读</option>
+          </select>
+        </label>
+        <div id="huyaConfig" class="huya-config" hidden>
+          <label class="input-label" for="huyaRoomInput">虎牙房间号或直播间链接</label>
+          <input id="huyaRoomInput" class="room-input" type="text" spellcheck="false" placeholder="例如 660000 或 huya.com/660000">
+          <p class="source-note">使用虎牙官方 liveshare 播放页；主播下播时会显示平台提示。</p>
+        </div>
+        <button id="activateButton" class="primary-action" type="button">
+          <span id="activateLabel">选择图片或视频</span>
+          <kbd>Alt ⇧ V</kbd>
+        </button>
+        <button id="createZoneButton" class="zone-action" type="button">
+          <span>创建左侧独立区域</span>
+          <kbd>＋</kbd>
+        </button>
+        <button id="adWindowButton" class="ad-window-action" type="button">
+          <span>打开右下角浏览器广告窗</span>
+          <kbd>窗口</kbd>
+        </button>
+        <button id="readerButton" class="reader-action" type="button">
+          <span>选择文字段落</span>
+          <kbd>TXT</kbd>
+        </button>
+        <div class="quiet-grid">
+          <button id="toggleControlsButton" class="quiet-action" type="button">显示 / 隐藏控件</button>
+          <button id="restoreButton" class="quiet-action" type="button">恢复当前页面</button>
+        </div>
+        <p class="source-note">独立区域可拖动缩放；广告窗属于浏览器，切换网页仍保留，移开鼠标立即恢复广告封面。</p>
+      </section>
+
+      <section id="comicSection" class="comic-section" aria-labelledby="comicTitle" hidden>
+        <div class="section-heading">
+          <h2 id="comicTitle">漫画库</h2>
+          <span>按页保存进度</span>
+        </div>
+        <label class="source-field" for="comicProvider">
+          <span>漫画来源</span>
+          <select id="comicProvider">
+            <option value="local">本地 CBZ / ZIP / 图片文件夹</option>
+            <option value="mangadex">MangaDex 官方 API</option>
+            <option value="komiic">Komiic 漫畫 · 中文在线</option>
+            <option value="bridge">DeskFish 本地漫画源</option>
+            <option value="komga">Komga · OPDS</option>
+            <option value="kavita">Kavita · OPDS</option>
+            <option value="lanraragi">LANraragi · OPDS</option>
+            <option value="suwayomi">Suwayomi Server · OPDS</option>
+          </select>
+        </label>
+
+        <div id="comicLocalPanel" class="comic-provider-panel">
+          <div class="comic-import-grid">
+            <label class="file-action compact-file" for="comicArchiveInput">
+              <span>导入 CBZ / ZIP</span><span class="file-mark">＋</span>
+            </label>
+            <label class="file-action compact-file" for="comicFolderInput">
+              <span>选择图片文件夹</span><span class="file-mark">＋</span>
+            </label>
+          </div>
+          <input id="comicArchiveInput" class="visually-hidden" type="file" accept=".cbz,.zip,application/zip" multiple>
+          <input id="comicFolderInput" class="visually-hidden" type="file" accept="image/*" webkitdirectory multiple>
+          <div id="comicLocalList" class="comic-results" aria-live="polite"></div>
+        </div>
+
+        <div id="comicMangaDexPanel" class="comic-provider-panel" hidden>
+          <div class="comic-search-row">
+            <input id="comicSearchInput" type="search" placeholder="搜索漫画名" spellcheck="false">
+            <button id="comicSearchButton" class="secondary-action" type="button">搜索</button>
+            <button id="comicMangaBack" class="text-action" type="button" hidden>返回搜索</button>
+          </div>
+          <div id="comicLanguageRow" class="comic-filter-row">
+            <label for="comicLanguage">章节语言</label>
+            <select id="comicLanguage">
+              <option value="zh">简体中文</option>
+              <option value="zh-hk">繁体中文</option>
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+              <option value="all">全部语言</option>
+            </select>
+          </div>
+          <div id="comicBridgeRow" class="comic-filter-row" hidden>
+            <label for="comicBridgeSource">本地来源</label>
+            <select id="comicBridgeSource"></select>
+            <button id="comicBridgeRefresh" class="text-action" type="button">检测引擎</button>
+          </div>
+          <div id="comicMangaResults" class="comic-results" aria-live="polite">
+            <p class="comic-empty">搜索后选择漫画，再选择要阅读的章节</p>
+          </div>
+          <p id="comicOnlineNote" class="source-note">在线内容由 MangaDex 与对应汉化组提供；本扩展只调用官方 API，不内置或转售漫画。</p>
+        </div>
+
+        <div id="comicOpdsPanel" class="comic-provider-panel" hidden>
+          <p id="comicOpdsHint" class="source-note"></p>
+          <label class="input-label" for="comicOpdsUrl">OPDS 地址</label>
+          <input id="comicOpdsUrl" type="url" spellcheck="false" placeholder="http://localhost:25600/opds/v1.2/catalog">
+          <div class="comic-auth-grid">
+            <input id="comicOpdsUsername" type="text" autocomplete="username" placeholder="用户名（可选）">
+            <input id="comicOpdsPassword" type="password" autocomplete="current-password" placeholder="密码（仅本次会话）">
+          </div>
+          <div class="comic-opds-actions">
+            <button id="comicOpdsConnect" class="secondary-action" type="button">连接漫画库</button>
+            <button id="comicOpdsBack" class="text-action" type="button" hidden>返回上级</button>
+          </div>
+          <div id="comicOpdsResults" class="comic-results" aria-live="polite"></div>
+          <p class="source-note">首次连接会由 Edge 询问该服务器的访问权限；密码只保存在本次浏览器会话。</p>
+        </div>
+
+        <div class="comic-selection-wrap">
+          <span class="input-label">当前阅读</span>
+          <div id="comicSelection" class="comic-selection" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section id="videoLibrarySection" aria-labelledby="libraryTitle">
+        <div class="section-heading">
+          <h2 id="libraryTitle">视频队列</h2>
+          <button id="clearButton" class="text-action" type="button">清空</button>
+        </div>
+
+        <button id="scanButton" class="scan-action" type="button">
+          <span class="scan-dot" aria-hidden="true"></span>
+          收集当前 Bilibili 页面
+        </button>
+
+        <label class="input-label" for="linkInput">或粘贴视频链接 / BV 号</label>
+        <textarea id="linkInput" rows="3" spellcheck="false" placeholder="每行一个；支持 bilibili.com 和 b23.tv"></textarea>
+        <button id="addButton" class="secondary-action" type="button">加入队列</button>
+
+        <div id="playlist" class="playlist" aria-live="polite"></div>
+      </section>
+
+      <section class="reader-source" aria-labelledby="readerTitle">
+        <div class="section-heading">
+          <h2 id="readerTitle">电子书</h2>
+          <button id="clearBookButton" class="text-action" type="button">清除</button>
+        </div>
+        <label class="file-action" for="bookInput">
+          <span>导入 TXT 电子书</span>
+          <span class="file-mark" aria-hidden="true">＋</span>
+        </label>
+        <input id="bookInput" class="visually-hidden" type="file" accept=".txt,text/plain">
+        <div id="bookInfo" class="book-info" aria-live="polite"></div>
+        <p class="reader-note">大文件会自动分片保存；按所选段落的非空白字符数显示，标点算一个，方向键按下方比例移动。</p>
+        <label class="reader-step-field" for="readerStepInput">
+          <span>
+            <strong>方向键翻页幅度</strong>
+            <small>100% 等于整段字符数</small>
+          </span>
+          <span class="percent-control">
+            <input id="readerStepInput" type="number" min="1" max="100" step="1" value="50">
+            <span>%</span>
+          </span>
+        </label>
+        <p class="reader-note">替换后点击文字即可启用滚轮阅读；鼠标每滚一格，默认移动当前排版的一行。</p>
+      </section>
+
+      <section class="settings" aria-labelledby="settingsTitle">
+        <div class="section-heading">
+          <h2 id="settingsTitle">播放方式</h2>
+        </div>
+        <label class="toggle-row">
+          <span>悬停才显示（默认开启）</span>
+          <input id="hoverRevealToggle" type="checkbox">
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+        <p class="setting-note">移开鼠标立即显示原图片；播放器不重载，会自动暂停，回来后继续。</p>
+        <label class="toggle-row">
+          <span>自动播放</span>
+          <input id="autoplayToggle" type="checkbox">
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+        <label class="toggle-row">
+          <span>默认静音</span>
+          <input id="mutedToggle" type="checkbox">
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+        <label class="toggle-row">
+          <span>显示弹幕</span>
+          <input id="danmakuToggle" type="checkbox">
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+      </section>
+
+      <footer>
+        <p>视频 <kbd>Alt ⇧ ←</kbd> <kbd>Alt ⇧ →</kbd>　控件 <kbd>Alt ⇧ H</kbd></p>
+        <p>小游戏在替换区域内点击后即可操作</p>
+        <p>阅读 <kbd>←</kbd> <kbd>→</kbd> 自定步长　点击文字后滚轮逐行</p>
+        <button id="shortcutsButton" class="shortcut-link" type="button">快捷键未生效？打开 Edge 快捷键设置</button>
+        <div class="footer-meta">
+          <a href="https://github.com/onguoin/DeskFish" target="_blank" rel="noreferrer">GitHub · DeskFish <span>↗</span></a>
+          <span>DeskFish v0.11.0</span>
+        </div>
+      </footer>
+
+      <div id="status" class="status" role="status" aria-live="polite" hidden></div>
+    </main>
+    <script src="comic/storage.js"></script>
+    <script src="comic/manager.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

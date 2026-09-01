@@ -1,0 +1,104 @@
+{
+  "manifest_version": 3,
+  "name": "DeskFish · 隐形播放器、漫画与电子书",
+  "version": "0.11.0",
+  "description": "替换网页媒体、播放视频与小游戏，并通过随包本地引擎或在线接口阅读漫画和 TXT 电子书。",
+  "homepage_url": "https://github.com/onguoin/DeskFish",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "declarativeNetRequestWithHostAccess",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "https://*.bilibili.com/*",
+    "https://b23.tv/*",
+    "https://liveshare.huya.com/*",
+    "https://api.mangadex.org/*",
+    "https://uploads.mangadex.org/*",
+    "https://komiic.com/*",
+    "http://127.0.0.1:47653/*"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://player.bilibili.com/*",
+        "https://liveshare.huya.com/*"
+      ],
+      "js": ["frame-bridge.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["games/*", "comic/*", "vendor/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "assets/deskfish-16.png",
+    "32": "assets/deskfish-32.png",
+    "48": "assets/deskfish-48.png",
+    "128": "assets/deskfish-128.png"
+  },
+  "action": {
+    "default_title": "DeskFish",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "assets/deskfish-16.png",
+      "32": "assets/deskfish-32.png",
+      "48": "assets/deskfish-48.png",
+      "128": "assets/deskfish-128.png"
+    }
+  },
+  "commands": {
+    "activate-picker": {
+      "suggested_key": {
+        "default": "Alt+Shift+V"
+      },
+      "description": "选择要替换的图片或视频"
+    },
+    "next-video": {
+      "suggested_key": {
+        "default": "Alt+Shift+Right"
+      },
+      "description": "下一条视频或下一页漫画"
+    },
+    "previous-video": {
+      "suggested_key": {
+        "default": "Alt+Shift+Left"
+      },
+      "description": "上一条视频或上一页漫画"
+    },
+    "toggle-controls": {
+      "suggested_key": {
+        "default": "Alt+Shift+H"
+      },
+      "description": "显示或隐藏视频控制条"
+    },
+    "open-ad-window": {
+      "description": "打开或聚焦右下角浏览器广告窗"
+    },
+    "restore-page": {
+      "description": "恢复原网页内容"
+    },
+    "activate-reader": {
+      "description": "选择要替换为电子书的文字段落"
+    },
+    "reader-next": {
+      "description": "电子书向后移动半页"
+    },
+    "reader-previous": {
+      "description": "电子书向前移动半页"
+    }
+  }
+}

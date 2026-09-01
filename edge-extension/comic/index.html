@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DeskFish 漫画阅读器</title>
+    <link rel="stylesheet" href="reader.css">
+  </head>
+  <body>
+    <main id="reader" class="reader" tabindex="0">
+      <header class="reader-bar">
+        <button id="previousChapterButton" class="chapter-step" type="button" aria-label="上一话" title="上一话">«</button>
+        <button id="previousButton" type="button" aria-label="上一页">‹</button>
+        <div class="reader-title">
+          <strong id="title">漫画</strong>
+          <span id="chapter"></span>
+        </div>
+        <output id="pageCounter">0 / 0</output>
+        <button id="fitButton" type="button" aria-label="切换适应方式">适宽</button>
+        <button id="nextButton" type="button" aria-label="下一页">›</button>
+        <button id="nextChapterButton" class="chapter-step" type="button" aria-label="下一话" title="下一话">»</button>
+      </header>
+
+      <section id="pageStage" class="page-stage" aria-live="polite">
+        <img id="pageImage" alt="漫画页面">
+        <button id="previousZone" class="page-zone previous-zone" type="button" aria-label="上一页"></button>
+        <button id="nextZone" class="page-zone next-zone" type="button" aria-label="下一页"></button>
+        <div id="loading" class="loading">正在读取漫画…</div>
+        <div id="errorState" class="error-state" hidden></div>
+      </section>
+
+      <footer class="reader-foot">
+        <span id="sourceCredit"></span>
+        <span>末页继续即下一话</span>
+      </footer>
+    </main>
+
+    <script src="../vendor/zip.min.js"></script>
+    <script src="storage.js"></script>
+    <script src="reader.js"></script>
+  </body>
+</html>

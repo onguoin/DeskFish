@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DeskFish 离线小游戏</title>
+    <link rel="stylesheet" href="game.css">
+  </head>
+  <body>
+    <main class="game-shell">
+      <header class="game-header">
+        <div>
+          <p class="eyebrow">DESKFRAME · OFFLINE</p>
+          <h1 id="gameTitle">小游戏</h1>
+        </div>
+        <div class="game-meta">
+          <output id="score" class="score">0</output>
+          <button id="undoButton" type="button">悔棋</button>
+          <button id="restartButton" type="button">重开</button>
+        </div>
+      </header>
+
+      <section class="stage">
+        <canvas id="gameCanvas" aria-label="游戏区域"></canvas>
+        <div id="tileBoard" class="tile-board" aria-label="2048 棋盘" hidden></div>
+      </section>
+
+      <footer class="game-footer">
+        <p id="status">准备开始</p>
+        <div id="directionPad" class="direction-pad" hidden>
+          <button type="button" data-direction="up" aria-label="向上">↑</button>
+          <button type="button" data-direction="left" aria-label="向左">←</button>
+          <button type="button" data-direction="down" aria-label="向下">↓</button>
+          <button type="button" data-direction="right" aria-label="向右">→</button>
+        </div>
+        <p id="help" class="help"></p>
+      </footer>
+    </main>
+    <script src="game.js"></script>
+  </body>
+</html>

@@ -1,0 +1,214 @@
+.df-is-picking,
+.df-is-picking * {
+  cursor: crosshair !important;
+}
+
+.df-picker-highlight {
+  position: fixed !important;
+  inset: 0 auto auto 0 !important;
+  z-index: 2147483645 !important;
+  box-sizing: border-box !important;
+  pointer-events: none !important;
+  border: 2px solid #3ab7a7 !important;
+  background: rgb(58 183 167 / 10%) !important;
+  box-shadow: 0 0 0 1px rgb(58 183 167 / 24%), 0 10px 34px rgb(31 85 78 / 14%) !important;
+  border-radius: 3px !important;
+}
+
+.df-picker-banner,
+.df-toast {
+  position: fixed !important;
+  left: 50% !important;
+  z-index: 2147483647 !important;
+  transform: translateX(-50%) !important;
+  box-sizing: border-box !important;
+  max-width: min(88vw, 480px) !important;
+  padding: 9px 13px !important;
+  border: 1px solid #cce4df !important;
+  border-radius: 7px !important;
+  color: #133439 !important;
+  background: rgb(255 255 255 / 96%) !important;
+  box-shadow: 0 10px 34px rgb(31 85 78 / 16%) !important;
+  font: 500 12px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif !important;
+  letter-spacing: 0.02em !important;
+  pointer-events: none !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.df-picker-banner {
+  top: 18px !important;
+}
+
+.df-toast {
+  bottom: 24px !important;
+  animation: df-toast-in 180ms ease-out both !important;
+}
+
+.df-player-shell {
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  color: #e8eef2 !important;
+  background: #0c1218 !important;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%) !important;
+  isolation: isolate !important;
+}
+
+.df-player-shell.df-virtual-shell {
+  min-width: 160px !important;
+  min-height: 90px !important;
+  max-width: 92vw !important;
+  max-height: 86vh !important;
+}
+
+.df-player-shell.df-virtual-shell.is-controls-visible {
+  resize: both !important;
+}
+
+.df-player-frame {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: #070b0f !important;
+  z-index: 1 !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.df-original-cover {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 3 !important;
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  object-fit: cover !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+picture.df-original-cover > img,
+.df-original-cover video,
+.df-original-cover img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  object-fit: cover !important;
+}
+
+.df-player-shell.is-revealed .df-player-frame {
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.df-player-shell.is-revealed .df-original-cover {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.df-toolbar {
+  position: absolute !important;
+  top: 7px !important;
+  right: 7px !important;
+  z-index: 4 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  padding: 3px !important;
+  border: 1px solid #cce4df !important;
+  border-radius: 6px !important;
+  color: #133439 !important;
+  background: rgb(255 255 255 / 92%) !important;
+  box-shadow: 0 5px 18px rgb(31 85 78 / 16%) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 130ms ease-out !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.df-player-shell.is-revealed .df-toolbar.is-visible {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.df-control[hidden] {
+  display: none !important;
+}
+
+.df-counter {
+  display: block !important;
+  min-width: 42px !important;
+  padding: 0 5px !important;
+  color: #60787b !important;
+  font: 600 10px/24px "Cascadia Mono", "SFMono-Regular", Consolas, monospace !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+.df-control {
+  display: inline-grid !important;
+  place-items: center !important;
+  width: 25px !important;
+  height: 24px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 4px !important;
+  color: #365b60 !important;
+  background: transparent !important;
+  font: 500 18px/1 "Segoe UI Symbol", sans-serif !important;
+  cursor: pointer !important;
+}
+
+.df-control:hover {
+  color: #1d766b !important;
+  background: rgb(58 183 167 / 14%) !important;
+}
+
+.df-control:focus-visible,
+.df-player-shell:focus-visible {
+  outline: 2px solid #3ab7a7 !important;
+  outline-offset: -2px !important;
+}
+
+[data-deskframe-reader="true"],
+[data-deskframe-reader="true"]:focus,
+[data-deskframe-reader="true"]:focus-visible {
+  outline: none !important;
+  caret-color: transparent !important;
+}
+
+@keyframes df-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 5px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .df-toolbar,
+  .df-toast {
+    transition: none !important;
+    animation: none !important;
+  }
+}

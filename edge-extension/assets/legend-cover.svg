@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 405" role="img" aria-labelledby="title desc">
+  <title id="title">原创传奇风格游戏广告背景</title>
+  <desc id="desc">火焰、山城、披甲武将和巨剑构成的金红色横幅背景</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#12070a"/>
+      <stop offset=".48" stop-color="#70200f"/>
+      <stop offset="1" stop-color="#160402"/>
+    </linearGradient>
+    <radialGradient id="sun">
+      <stop offset="0" stop-color="#fff4a0" stop-opacity=".95"/>
+      <stop offset=".2" stop-color="#ff9e28" stop-opacity=".8"/>
+      <stop offset="1" stop-color="#df2a08" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#fff2a7"/>
+      <stop offset=".35" stop-color="#e9a62e"/>
+      <stop offset=".7" stop-color="#8b370c"/>
+      <stop offset="1" stop-color="#ffd770"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#eef4dc"/>
+      <stop offset=".25" stop-color="#9b9d8d"/>
+      <stop offset=".5" stop-color="#fff4ba"/>
+      <stop offset="1" stop-color="#512313"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="shadow"><feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000" flood-opacity=".8"/></filter>
+  </defs>
+  <rect width="720" height="405" fill="url(#sky)"/>
+  <circle cx="238" cy="142" r="174" fill="url(#sun)" filter="url(#glow)"/>
+  <path d="M0 286 74 235l53 29 53-76 53 61 62-98 73 102 59-51 69 76 54-42 84 54v115H0Z" fill="#220706" opacity=".88"/>
+  <g fill="#f24a0d" opacity=".65" filter="url(#glow)">
+    <path d="M0 405V281q30 55 60 0 24 66 51 2 20 57 47 7 28 52 61-17 26 87 65 12v120Z"/>
+    <path d="M248 405q33-89 63-12 25-88 51-16 34-106 66-19 27-83 53-16 23-89 53-5v68Z"/>
+  </g>
+  <g transform="translate(58 35)" filter="url(#shadow)">
+    <path d="m165 14 31 24-10 42-38 16-35-22 2-40 22-22Z" fill="#29110d" stroke="url(#gold)" stroke-width="9"/>
+    <path d="M130 49q17-26 45 0l-7 44h-32Z" fill="#c98e42"/>
+    <path d="M142 56h10v11h-10zm23 0h10v11h-10z" fill="#ffdf88"/>
+    <path d="M115 93 72 132l35 122 85 7 50-99-51-69-38 30Z" fill="#70170d" stroke="url(#gold)" stroke-width="11"/>
+    <path d="m95 118-63 40 15 45 69-19Z" fill="#2b1715" stroke="url(#gold)" stroke-width="8"/>
+    <path d="m199 112 79 36-18 49-72-23Z" fill="#2b1715" stroke="url(#gold)" stroke-width="8"/>
+    <path d="m121 104 33 47 37-48-4 103-72-2Z" fill="#38110c" stroke="#f0b94e" stroke-width="5"/>
+    <circle cx="153" cy="177" r="19" fill="#f6d36b" stroke="#802409" stroke-width="7"/>
+    <path d="M114 230 73 337h58l29-76 23 76h62l-47-108Z" fill="#251417" stroke="url(#gold)" stroke-width="9"/>
+    <path d="m41 330 270-278 25 23L90 360Z" fill="url(#steel)" stroke="#d9a946" stroke-width="7"/>
+    <path d="m287 56 49-39 18 16-28 54Z" fill="#f3c24d"/>
+  </g>
+  <g opacity=".8">
+    <path d="M0 354h720v51H0z" fill="#080000"/>
+    <path d="M0 357q84-39 157 3 78-50 154 2 78-43 157 0 116-56 252 6v37H0Z" fill="#4d0d06"/>
+  </g>
+  <path d="M18 18h684v369H18z" fill="none" stroke="#e8a72d" stroke-width="3" opacity=".45"/>
+</svg>

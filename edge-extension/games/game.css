@@ -1,0 +1,293 @@
+:root {
+  color-scheme: light;
+  --ink: #133439;
+  --muted: #60787b;
+  --panel: #ffffff;
+  --panel-2: #effaf8;
+  --line: #cce4df;
+  --signal: #3ab7a7;
+  --warm: #d8b476;
+  font-family: "Segoe UI Variable", "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+button {
+  font: inherit;
+}
+
+.game-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: 100%;
+  height: 100%;
+  padding: clamp(7px, 2.2vmin, 17px);
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 84% 8%, rgb(58 183 167 / 10%), transparent 35%),
+    linear-gradient(145deg, #ffffff, #f2faf8);
+}
+
+.game-header,
+.game-footer,
+.game-meta,
+.direction-pad {
+  display: flex;
+  align-items: center;
+}
+
+.game-header {
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding-bottom: clamp(5px, 1.5vmin, 10px);
+  border-bottom: 1px solid var(--line);
+}
+
+.eyebrow {
+  margin: 0 0 2px;
+  color: var(--muted);
+  font: 600 clamp(6px, 1.5vmin, 10px)/1.1 "Cascadia Mono", Consolas, monospace;
+  letter-spacing: 0.14em;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(14px, 3.5vmin, 26px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.game-meta {
+  justify-content: end;
+  gap: 5px;
+}
+
+.score,
+.game-meta button,
+.direction-pad button {
+  min-width: 38px;
+  height: clamp(24px, 5.5vmin, 34px);
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--ink);
+  background: var(--panel-2);
+  font-size: clamp(8px, 1.8vmin, 11px);
+}
+
+.score {
+  display: grid;
+  place-items: center;
+  color: var(--signal);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-weight: 700;
+}
+
+.game-meta button,
+.direction-pad button {
+  cursor: pointer;
+}
+
+.game-meta button:hover,
+.direction-pad button:hover {
+  border-color: var(--signal);
+  background: #e3f5f1;
+}
+
+.stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(4px, 1.3vmin, 10px) 0;
+}
+
+#gameCanvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 4px;
+  touch-action: none;
+}
+
+.tile-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(4px, 1.4vmin, 9px);
+  width: min(100%, 56vh);
+  aspect-ratio: 1;
+  padding: clamp(5px, 1.5vmin, 10px);
+  border: 1px solid #4b4034;
+  border-radius: 6px;
+  background: #352f2a;
+}
+
+.tile-board[hidden] {
+  display: none;
+}
+
+.tile {
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  color: #ecf0f1;
+  background: #1b2931;
+  font: 750 clamp(12px, 5vmin, 34px)/1 "Cascadia Mono", Consolas, monospace;
+}
+
+.tile[data-value="0"] { color: transparent; background: #27343a; }
+.tile[data-value="2"] { color: #28343a; background: #dce9e7; }
+.tile[data-value="4"] { color: #26343a; background: #bfdbd7; }
+.tile[data-value="8"] { color: #152328; background: #87c5c4; }
+.tile[data-value="16"] { color: #122126; background: #62adb1; }
+.tile[data-value="32"] { background: #3e8994; }
+.tile[data-value="64"] { background: #287383; }
+.tile[data-value="128"] { color: #251c12; background: #dfc38d; }
+.tile[data-value="256"] { color: #251c12; background: #d8ae68; }
+.tile[data-value="512"] { color: #20170d; background: #cc9347; }
+.tile[data-value="1024"] { background: #b66e38; }
+.tile[data-value="2048"] { background: #a9523c; }
+
+.game-footer {
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding-top: clamp(5px, 1.4vmin, 9px);
+  border-top: 1px solid var(--line);
+}
+
+.game-footer p {
+  margin: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: clamp(7px, 1.7vmin, 11px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#status {
+  color: var(--signal);
+  font-weight: 650;
+}
+
+.help {
+  margin-left: auto !important;
+  text-align: right;
+}
+
+.direction-pad {
+  gap: 3px;
+}
+
+.direction-pad[hidden] {
+  display: none;
+}
+
+.direction-pad button {
+  min-width: clamp(25px, 5vmin, 34px);
+  padding: 0;
+  font-size: clamp(12px, 2.8vmin, 18px);
+}
+
+button:focus-visible,
+#gameCanvas:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
+@media (max-height: 170px) {
+  .eyebrow,
+  .help {
+    display: none;
+  }
+
+  .game-shell {
+    padding: 5px;
+  }
+
+  .game-header,
+  .game-footer {
+    padding-block: 3px;
+  }
+}
+
+@media (max-width: 360px), (max-height: 220px) {
+  .game-shell {
+    position: relative;
+    display: block;
+    padding: 3px;
+  }
+
+  .game-header {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 5;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .game-header > div:first-child,
+  .score,
+  .game-footer {
+    display: none;
+  }
+
+  .game-meta {
+    gap: 2px;
+  }
+
+  .game-meta button {
+    width: 25px;
+    min-width: 25px;
+    height: 25px;
+    padding: 0;
+    border-color: rgb(58 183 167 / 24%);
+    background: rgb(255 255 255 / 88%);
+    font-size: 0;
+    backdrop-filter: blur(5px);
+  }
+
+  #undoButton::before {
+    content: "↶";
+    font-size: 15px;
+  }
+
+  #restartButton::before {
+    content: "↻";
+    font-size: 15px;
+  }
+
+  .stage {
+    position: absolute;
+    inset: 3px;
+    padding: 0;
+  }
+
+  .tile-board {
+    gap: 3px;
+    padding: 4px;
+  }
+
+  .tile {
+    font-size: clamp(10px, 8vmin, 24px);
+  }
+}

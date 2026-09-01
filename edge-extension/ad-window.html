@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>限时游戏福利</title>
+    <link rel="stylesheet" href="ad-window.css">
+  </head>
+  <body>
+    <main id="adShell" class="ad-shell" aria-label="游戏广告">
+      <iframe
+        id="mediaFrame"
+        class="media-frame"
+        title="DeskFish 媒体内容"
+        allow="autoplay; fullscreen; picture-in-picture"
+        referrerpolicy="strict-origin-when-cross-origin"
+      ></iframe>
+      <div id="adCover" class="ad-cover" aria-hidden="true">
+        <img class="ad-backdrop" src="assets/legend-cover.svg" alt="">
+        <img class="warrior-art" src="assets/warrior-openclipart.svg" alt="传奇游戏广告封面">
+        <div class="ad-copy">
+          <p class="ad-kicker">经典怀旧 · 装备全回收</p>
+          <p class="ad-title"><strong>一刀</strong><span>999</span><em>级</em></p>
+          <p class="ad-subtitle">登录即送神装　散人也能打金</p>
+        </div>
+        <div class="start-ribbon"><span>开始游戏</span></div>
+        <span class="ad-badge">广告</span>
+      </div>
+      <p id="emptyState" class="empty-state" hidden>先在 DeskFish 中配置播放内容</p>
+    </main>
+    <script src="ad-window.js"></script>
+  </body>
+</html>

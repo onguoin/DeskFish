@@ -1,0 +1,18 @@
+# .NET
+**/bin/
+**/obj/
+artifacts/
+
+# Editors and operating systems
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+.DS_Store
+Thumbs.db
+
+# Local packages and temporary files
+*.zip
+*.log
+*.tmp

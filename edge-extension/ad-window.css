@@ -1,0 +1,209 @@
+:root {
+  color-scheme: dark;
+  font-family: "Microsoft YaHei UI", "SimHei", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #140604;
+}
+
+.ad-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 2px solid #f4bd42;
+  background: #080503;
+  box-shadow: inset 0 0 0 2px #5f1d0d;
+}
+
+.media-frame,
+.ad-cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.media-frame {
+  z-index: 1;
+  background: #000;
+  opacity: 0;
+  transition: opacity 90ms linear;
+}
+
+.ad-cover {
+  z-index: 2;
+  overflow: hidden;
+  background: #2d0905;
+  opacity: 1;
+  transition: opacity 70ms linear;
+  pointer-events: none;
+}
+
+.ad-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent 42%, rgb(20 0 0 / 58%) 67%, rgb(15 0 0 / 88%) 100%),
+    linear-gradient(0deg, rgb(20 0 0 / 86%) 0, transparent 46%);
+}
+
+.ad-backdrop {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.warrior-art {
+  position: absolute;
+  z-index: 1;
+  bottom: -15%;
+  left: -4%;
+  width: 62%;
+  height: 122%;
+  object-fit: contain;
+  object-position: left bottom;
+  filter: sepia(.22) saturate(1.45) contrast(1.08) drop-shadow(7px 6px 7px rgb(0 0 0 / 80%));
+}
+
+.ad-copy {
+  position: absolute;
+  z-index: 3;
+  top: 13px;
+  right: 14px;
+  width: 59%;
+  color: #fff4c4;
+  text-align: center;
+  text-shadow: 0 2px 1px #390400, 0 0 8px #e02f0c;
+}
+
+.ad-copy p {
+  margin: 0;
+}
+
+.ad-kicker {
+  color: #ffd47a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.ad-title {
+  margin-top: 1px !important;
+  line-height: .92;
+  transform: skewX(-5deg);
+  white-space: nowrap;
+}
+
+.ad-title strong {
+  font-family: "STKaiti", "KaiTi", serif;
+  font-size: 27px;
+  letter-spacing: -.08em;
+}
+
+.ad-title span {
+  margin-left: 3px;
+  color: #fff25f;
+  font: 900 45px/.85 Impact, "Arial Black", sans-serif;
+  letter-spacing: -.05em;
+  -webkit-text-stroke: 1px #8f1608;
+}
+
+.ad-title em {
+  color: #ffe4a0;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.ad-subtitle {
+  margin-top: 7px !important;
+  color: #fff0a8;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.start-ribbon {
+  position: absolute;
+  z-index: 4;
+  right: 31px;
+  bottom: 22px;
+  width: 166px;
+  height: 42px;
+  padding: 3px;
+  clip-path: polygon(7% 0, 93% 0, 100% 50%, 93% 100%, 7% 100%, 0 50%);
+  background: linear-gradient(#ffe28b, #9e4d13 15%, #ffe192 50%, #742006 54%, #2b0801);
+  filter: drop-shadow(0 2px 5px #000);
+}
+
+.start-ribbon span {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  clip-path: inherit;
+  color: #fff4b5;
+  background: linear-gradient(#b82d0f, #ff6b18 48%, #9a1808 52%, #5f0c04);
+  font-family: "STKaiti", "KaiTi", serif;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-shadow: 0 2px 1px #4b0700, 0 0 7px #ffcb47;
+}
+
+.ad-badge {
+  position: absolute;
+  z-index: 5;
+  right: 5px;
+  bottom: 4px;
+  padding: 1px 4px;
+  border: 1px solid rgb(255 255 255 / 45%);
+  color: rgb(255 255 255 / 72%);
+  background: rgb(0 0 0 / 42%);
+  font-size: 8px;
+}
+
+.ad-shell.is-revealed .media-frame {
+  opacity: 1;
+}
+
+.ad-shell.is-revealed .ad-cover {
+  opacity: 0;
+}
+
+.empty-state {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 24px;
+  color: #ffe6aa;
+  background: #310a05;
+  font-size: 13px;
+  text-align: center;
+}
+
+.empty-state[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-frame,
+  .ad-cover {
+    transition: none;
+  }
+}
