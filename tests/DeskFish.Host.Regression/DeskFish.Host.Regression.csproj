@@ -9,6 +9,7 @@
     <Compile Include="..\..\windows-host\Models.cs" Link="Models.cs" />
     <Compile Include="..\..\windows-host\LocalCache.cs" Link="LocalCache.cs" />
     <Compile Include="..\..\windows-host\Sources\BaoziChapterParser.cs" Link="Sources\BaoziChapterParser.cs" />
+    <Compile Include="..\..\windows-host\Sources\BaoziImageFallback.cs" Link="Sources\BaoziImageFallback.cs" />
     <Compile Include="..\..\windows-host\Sources\INovelSource.cs" Link="Sources\INovelSource.cs" />
     <Compile Include="..\..\windows-host\Sources\NovelChapterSplitter.cs" Link="Sources\NovelChapterSplitter.cs" />
     <Compile Include="..\..\windows-host\Sources\GutenbergOpdsNovelSource.cs" Link="Sources\GutenbergOpdsNovelSource.cs" />

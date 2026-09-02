@@ -44,7 +44,7 @@ DeskFish 是一条藏在浏览器边上的小鱼，也是给上班摸鱼、午�
 - **全局快捷键**：不要求焦点停在播放器上，即可选择区域、切换上一条/下一条、隐藏控制栏或恢复页面。
 - **小说与 TXT 电子书**：本地 TXT 流式分片并自动识别章节；支持章节跳转、固定字符数、百分比步进、方向键、点击后滚轮逐行阅读和进度记忆。
 - **在线小说与公版书**：智能搜索会优先使用 EXE 内置的起点中文网公开章节解析器，也可在不运行 EXE 时直连 Project Gutenberg、中文维基文库和英文 Wikisource；选中的可读内容会缓存到本机。
-- **漫画阅读**：本地 CBZ/ZIP/图片文件夹、MangaDex、Komga、Kavita、LANraragi、Suwayomi，以及随 Windows 程序提供的本地来源。
+- **漫画阅读**：本地 CBZ/ZIP/图片文件夹、MangaDex、Komga、Kavita、LANraragi、Suwayomi，以及随 Windows 程序提供的本地来源；可在来源原序与章节号升序之间切换。
 - **连续阅读与缓存**：保存搜索、漫画、章节、页码和电子书进度；漫画页默认预取当前页前后各 5 页，离开窗口后释放内存。
 - **自适应小游戏**：五子棋等小游戏会根据被替换区域自动缩放，小格子不会再塞入完整桌面布局。
 
@@ -61,7 +61,7 @@ DeskFish 是一条藏在浏览器边上的小鱼，也是给上班摸鱼、午�
 
 ## 下载与安装
 
-最新版本：[**下载 DeskFish for Windows x64**](https://github.com/onguoin/DeskFish/releases/latest/download/DeskFish-v0.12.1-Windows-x64.zip)
+最新版本：[**下载 DeskFish for Windows x64**](https://github.com/onguoin/DeskFish/releases/latest/download/DeskFish-v0.12.2-Windows-x64.zip)
 
 1. 解压下载的 ZIP，先运行 `DeskFish.exe`。它是自包含程序，不需要另装 Python、Node.js、Java、Docker 或 .NET。
 2. 在 Edge 打开 `edge://extensions`，开启右上角“开发人员模式”。
@@ -117,7 +117,7 @@ Windows 可能因为程序尚未购买代码签名证书而显示“未知发布
 ./build.ps1
 ```
 
-输出位于 `artifacts/DeskFish-v0.12.1-Windows-x64`。Edge 扩展本身无需编译，直接加载 `edge-extension` 文件夹即可。
+输出位于 `artifacts/DeskFish-v0.12.2-Windows-x64`。Edge 扩展本身无需编译，直接加载 `edge-extension` 文件夹即可。
 
 ## 项目结构
 

@@ -34,6 +34,31 @@ test("creates display-only one-based ordinals", () => {
   assert.equal(chapterList.ordinal(99), "100");
 });
 
+test("optionally sorts only explicit chapter numbers and source chapter slots", () => {
+  const input = [
+    { id: "/user/page_direct?chapter_slot=12", title: "第12话 继续" },
+    { id: "/user/page_direct?chapter_slot=2", title: "第2话 开始" },
+    { id: "/user/page_direct?chapter_slot=3", title: "特别番外" }
+  ];
+  const sourceOrder = chapterList.order(input, false);
+  assert.deepEqual(sourceOrder.map((chapter) => chapter.title), ["第12话 继续", "第2话 开始", "特别番外"]);
+  const numericOrder = chapterList.order(sourceOrder, true);
+  assert.deepEqual(numericOrder.map((chapter) => chapter.title), ["第2话 开始", "特别番外", "第12话 继续"]);
+  assert.deepEqual(chapterList.order(numericOrder, false).map((chapter) => chapter.title), [
+    "第12话 继续", "第2话 开始", "特别番外"
+  ]);
+});
+
+test("keeps unnumbered entries stable after numbered chapters", () => {
+  const ordered = chapterList.order([
+    { id: "event-a", title: "QQ飞车特别番外篇" },
+    { id: "c10", title: "第10章 十" },
+    { id: "event-b", title: "更新通知" },
+    { id: "c1", title: "第1章 一" }
+  ], true);
+  assert.deepEqual(ordered.map((chapter) => chapter.title), ["第1章 一", "第10章 十", "QQ飞车特别番外篇", "更新通知"]);
+});
+
 test("manager does not reverse the chapter rows", () => {
   const manager = fs.readFileSync(path.resolve(__dirname, "../edge-extension/comic/manager.js"), "utf8");
   assert.doesNotMatch(manager, /series\.chapters[^;\n]*\.reverse\s*\(/);

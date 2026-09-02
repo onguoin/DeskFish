@@ -44,7 +44,7 @@ When a page has no suitable area, DeskFish can create one on the left, right, or
 - **Global shortcuts** — pick an area, move to the previous or next item, hide controls, or restore the page without focusing the player.
 - **Novels and TXT ebooks** — streams large local files into chunks, detects chapters automatically, and supports chapter jumps, percentage steps, arrow keys, line-by-line wheel reading, and saved progress.
 - **Online novels and public-domain books** — Smart Search prefers the bundled Qidian public-chapter parser for Chinese web fiction, while Project Gutenberg plus Chinese and English Wikisource remain available directly without the executable.
-- **Comic reader** — local CBZ/ZIP/image folders, MangaDex, Komga, Kavita, LANraragi, Suwayomi, and sources provided by the Windows local engine.
+- **Comic reader** — local CBZ/ZIP/image folders, MangaDex, Komga, Kavita, LANraragi, Suwayomi, and Windows-host sources, with a persistent switch between source order and numeric chapter order.
 - **Continuous reading and caching** — remembers searches, titles, chapters, pages, and ebook positions; prefetches five comic pages on each side and releases them when the reader closes.
 - **Responsive mini games** — Gomoku and other games scale down to the selected area instead of forcing a desktop-sized board into a tiny tile.
 
@@ -61,7 +61,7 @@ When a page has no suitable area, DeskFish can create one on the left, right, or
 
 ## Download and install
 
-Latest version: [**Download DeskFish for Windows x64**](https://github.com/onguoin/DeskFish/releases/latest/download/DeskFish-v0.12.1-Windows-x64.zip)
+Latest version: [**Download DeskFish for Windows x64**](https://github.com/onguoin/DeskFish/releases/latest/download/DeskFish-v0.12.2-Windows-x64.zip)
 
 1. Extract the ZIP and run `DeskFish.exe`. The release is self-contained; Python, Node.js, Java, Docker, and a separate .NET installation are not required.
 2. Open `edge://extensions` in Microsoft Edge and enable **Developer mode**.
@@ -117,7 +117,7 @@ Windows 10/11 and the .NET 10 SDK are required:
 ./build.ps1
 ```
 
-The package is written to `artifacts/DeskFish-v0.12.1-Windows-x64`. The Edge extension needs no build step and can be loaded directly from `edge-extension`.
+The package is written to `artifacts/DeskFish-v0.12.2-Windows-x64`. The Edge extension needs no build step and can be loaded directly from `edge-extension`.
 
 ## Repository layout
 

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "DeskFish · 隐形播放器、漫画与电子书",
-  "version": "0.12.1",
+  "version": "0.12.2",
   "description": "替换网页媒体、播放视频与小游戏，并通过随包本地引擎阅读漫画、本地 TXT、中文网络小说公开章节和在线公版书。",
   "homepage_url": "https://github.com/onguoin/DeskFish",
   "permissions": [

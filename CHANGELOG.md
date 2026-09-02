@@ -1,5 +1,21 @@
 # Changelog / 更新记录
 
+## 0.12.2 — 2026-09-02
+
+### 中文
+
+- 修复包子漫画图片节点 TLS 中断造成的 `unexpected EOF`：本地引擎会先完整校验图片，再自动回退到三个可用的官方 CDN 域名。
+- 包子章节解析只读取真正的章节目录，不再把页面顶部“最新章节”预览混入列表开头。
+- 新增持久化“按章节号自动排序”开关；关闭时严格恢复来源顺序，开启时按明确的“第 N 话/章/回/卷”、来源数值或包子 `chapter_slot` 升序。
+- 切换排序后会同步当前章节索引，上一话、下一话和后台预加载继续沿新顺序工作；章节标题保持来源原文不变。
+
+### English
+
+- Fixed Baozi image `unexpected EOF` failures by fully validating each response and falling back across three working official CDN hostnames.
+- Scoped Baozi parsing to the actual chapter catalog so the page's separate “latest chapter” preview no longer pollutes the beginning of the list.
+- Added a persistent automatic chapter-order switch. Disabled preserves source order; enabled uses explicit numbered titles, provider numbers, or Baozi `chapter_slot` values.
+- Reindexes the selected chapter after an order change so previous/next navigation and next-chapter prefetch follow the chosen order without rewriting source titles.
+
 ## 0.12.1 — 2026-09-02
 
 ### 中文

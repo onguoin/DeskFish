@@ -73,7 +73,7 @@ test("reuses next-chapter prefetch and releases it when hidden", async () => {
     key: "bridge:baozimh:manga",
     provider: "bridge",
     title: "测试漫画",
-    chapterOrderSchema: 2,
+    chapterOrderSchema: 3,
     selectionBase: {
       provider: "bridge",
       bridgeEndpoint: "http://127.0.0.1:47653",

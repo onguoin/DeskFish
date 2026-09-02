@@ -5,11 +5,11 @@
   let notify = () => {};
   let opdsHistory = [];
   let currentManga = null;
-  let uiState = { provider: "local", query: "", language: "zh", bridgeSourceId: "", seriesKey: "" };
+  let uiState = { provider: "local", query: "", language: "zh", bridgeSourceId: "", seriesKey: "", autoSortChapters: false };
   let seriesCache = {};
   const BRIDGE_ENDPOINT = "http://127.0.0.1:47653";
   const MAX_CACHED_SERIES = 8;
-  const CHAPTER_ORDER_SCHEMA = 2;
+  const CHAPTER_ORDER_SCHEMA = 3;
 
   const providerNames = {
     local: "本地文件",
@@ -42,7 +42,7 @@
   }
 
   function normalizeSeriesChapters(chapters) {
-    return chapterList.normalize(chapters);
+    return chapterList.order(chapters, uiState.autoSortChapters);
   }
 
   function selectionFromSeries(series, chapterIndex) {
@@ -114,12 +114,52 @@
     if (!series.chapters.length) elements.comicMangaResults.append(emptyState("这部漫画没有可读章节"));
   }
 
+  async function applyChapterOrdering(automatic) {
+    uiState = { ...uiState, autoSortChapters: Boolean(automatic) };
+    seriesCache = Object.fromEntries(Object.entries(seriesCache).map(([key, series]) => [key, {
+      ...series,
+      chapters: chapterList.order(series.chapters, uiState.autoSortChapters),
+      updatedAt: Date.now()
+    }]));
+    const stored = await chrome.storage.local.get("comicSelection");
+    let selection = stored.comicSelection || null;
+    const selectedSeries = selection?.seriesKey ? seriesCache[selection.seriesKey] : null;
+    if (selectedSeries) {
+      const chapterIndex = selectedSeries.chapters.findIndex((chapter) => chapter.selectionId === selection.id);
+      if (chapterIndex >= 0) {
+        selection = { ...selection, chapterIndex, chapterCount: selectedSeries.chapters.length };
+      }
+    }
+    await chrome.storage.local.set({
+      comicUiState: uiState,
+      comicSeriesCache: seriesCache,
+      ...(selection ? {
+        comicSelection: selection,
+        comicReadingState: {
+          seriesKey: selection.seriesKey || "",
+          chapterIndex: Number.isInteger(selection.chapterIndex) ? selection.chapterIndex : -1,
+          selectionId: selection.id,
+          updatedAt: Date.now()
+        }
+      } : {})
+    });
+    if (selection) {
+      renderSelection(selection);
+      document.dispatchEvent(new CustomEvent("deskframe:comic-selection-changed", { detail: selection }));
+    }
+    const activeKey = currentManga?.seriesKey || uiState.seriesKey;
+    if (activeKey && seriesCache[activeKey]) await renderSeries(seriesCache[activeKey]);
+    notify(uiState.autoSortChapters
+      ? "已开启章节号排序；无明确章节号的内容保持来源顺序"
+      : "已关闭章节号排序；恢复来源原始顺序");
+  }
+
   function bindElements() {
     for (const id of [
       "comicProvider", "comicLocalPanel", "comicMangaDexPanel", "comicOpdsPanel",
       "comicArchiveInput", "comicFolderInput", "comicLocalList", "comicSelection",
       "comicSearchInput", "comicSearchButton", "comicLanguage", "comicLanguageRow", "comicMangaBack", "comicOnlineNote",
-      "comicBridgeRow", "comicBridgeSource", "comicBridgeRefresh",
+      "comicBridgeRow", "comicBridgeSource", "comicBridgeRefresh", "comicAutoSortToggle",
       "comicMangaResults", "comicOpdsUrl", "comicOpdsUsername", "comicOpdsPassword",
       "comicOpdsConnect", "comicOpdsBack", "comicOpdsResults", "comicOpdsHint"
     ]) elements[id] = document.querySelector(`#${id}`);
@@ -772,6 +812,9 @@
       finally { elements.comicFolderInput.value = ""; }
     });
     elements.comicSearchButton.addEventListener("click", () => void onlineSearch());
+    elements.comicAutoSortToggle.addEventListener("change", () => {
+      void applyChapterOrdering(elements.comicAutoSortToggle.checked);
+    });
     elements.comicSearchInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") { event.preventDefault(); void onlineSearch(); }
     });
@@ -825,12 +868,14 @@
       language: "zh",
       bridgeSourceId: "",
       seriesKey: selection?.seriesKey || "",
+      autoSortChapters: false,
       ...(stored.comicUiState || {})
     };
     if (!Array.from(elements.comicProvider.options).some((option) => option.value === uiState.provider)) {
       uiState.provider = inferredProvider(selection);
     }
     elements.comicProvider.value = uiState.provider;
+    elements.comicAutoSortToggle.checked = Boolean(uiState.autoSortChapters);
     elements.comicSearchInput.value = uiState.query || "";
     if (Array.from(elements.comicLanguage.options).some((option) => option.value === uiState.language)) {
       elements.comicLanguage.value = uiState.language;

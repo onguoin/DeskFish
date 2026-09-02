@@ -3,7 +3,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$version = "0.12.1"
+$version = "0.12.2"
 $packageName = "DeskFish-v$version-Windows-x64"
 $artifacts = Join-Path $PSScriptRoot "artifacts"
 $publish = Join-Path $artifacts "publish"

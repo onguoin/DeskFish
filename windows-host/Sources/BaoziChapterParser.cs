@@ -19,8 +19,9 @@ internal static class BaoziChapterParser
     {
         var chapters = new List<MangaChapter>();
         var seenIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var catalog = ChapterCatalog(html ?? "");
 
-        foreach (Match match in ChapterPattern.Matches(html ?? ""))
+        foreach (Match match in ChapterPattern.Matches(catalog))
         {
             var id = Decode(match.Groups["href"].Value);
             var title = CleanText(match.Groups["title"].Value);
@@ -36,6 +37,14 @@ internal static class BaoziChapterParser
         }
 
         return chapters;
+    }
+
+    private static string ChapterCatalog(string html)
+    {
+        var start = html.IndexOf("id=\"chapter-items\"", StringComparison.OrdinalIgnoreCase);
+        if (start < 0) return html;
+        var end = html.IndexOf("id=\"button_show_all_chatper\"", start, StringComparison.OrdinalIgnoreCase);
+        return end > start ? html[start..end] : html[start..];
     }
 
     private static string CleanText(string value) =>

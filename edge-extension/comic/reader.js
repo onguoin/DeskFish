@@ -10,7 +10,7 @@
   const NEXT_CHAPTER_CACHE_BYTES = 32 * 1024 * 1024;
   const NEXT_CHAPTER_PREFETCH_PAGES = 5;
   const NEXT_CHAPTER_CONCURRENCY = 2;
-  const CHAPTER_ORDER_SCHEMA = 2;
+  const CHAPTER_ORDER_SCHEMA = 3;
   const elements = {
     reader: document.querySelector("#reader"),
     title: document.querySelector("#title"),

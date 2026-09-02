@@ -15,11 +15,12 @@ namespace DeskFrame.Host;
 
 internal sealed partial class BridgeServer : IAsyncDisposable
 {
+    private const long MaxProxyImageBytes = 32L * 1024 * 1024;
     public const string DefaultEndpoint = "http://127.0.0.1:47653";
     public static string Endpoint => Environment.GetEnvironmentVariable("DESKFISH_ENDPOINT")?.TrimEnd('/') is { Length: > 0 } configured
         ? configured
         : DefaultEndpoint;
-    public const string Version = "0.12.1";
+    public const string Version = "0.12.2";
 
     private readonly IReadOnlyDictionary<string, IMangaSource> _sources;
     private readonly IReadOnlyDictionary<string, INovelSource> _novelSources;
@@ -160,7 +161,7 @@ internal sealed partial class BridgeServer : IAsyncDisposable
         var provider = Source(source);
         var safeId = id ?? "";
         var cached = await _cache.GetOrCreateAsync(
-            $"manga|{provider.Info.Id}|{safeId}",
+            $"manga-v2|{provider.Info.Id}|{safeId}",
             TimeSpan.FromHours(12),
             token => provider.GetDetailsAsync(safeId, token),
             cancellationToken);
@@ -273,15 +274,42 @@ internal sealed partial class BridgeServer : IAsyncDisposable
             return;
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, ticket.Url);
-        if (Uri.TryCreate(ticket.Referer, UriKind.Absolute, out var referer)) request.Headers.Referrer = referer;
-        using var response = await _imageClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
-        response.EnsureSuccessStatusCode();
-        context.Response.StatusCode = (int)response.StatusCode;
-        context.Response.ContentType = response.Content.Headers.ContentType?.ToString() ?? "image/jpeg";
+        var image = await FetchProxyImageAsync(ticket, context.RequestAborted);
+        context.Response.StatusCode = StatusCodes.Status200OK;
+        context.Response.ContentType = image.ContentType;
         context.Response.Headers.CacheControl = "private, max-age=600";
-        if (response.Content.Headers.ContentLength is long length) context.Response.ContentLength = length;
-        await response.Content.CopyToAsync(context.Response.Body, context.RequestAborted);
+        context.Response.ContentLength = image.Bytes.LongLength;
+        await context.Response.Body.WriteAsync(image.Bytes, context.RequestAborted);
+    }
+
+    private async Task<BufferedImage> FetchProxyImageAsync(ProxyTicket ticket, CancellationToken cancellationToken)
+    {
+        Exception? lastError = null;
+        foreach (var target in BaoziImageFallback.Candidates(ticket.Url))
+        {
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, target);
+                if (Uri.TryCreate(ticket.Referer, UriKind.Absolute, out var referer)) request.Headers.Referrer = referer;
+                using var response = await _imageClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                response.EnsureSuccessStatusCode();
+                await response.Content.LoadIntoBufferAsync(MaxProxyImageBytes, cancellationToken);
+                var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+                if (bytes.Length == 0) throw new IOException("漫画图片源返回了空文件");
+                return new BufferedImage(
+                    bytes,
+                    response.Content.Headers.ContentType?.ToString() ?? "image/jpeg");
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception error) when (error is HttpRequestException or IOException or OperationCanceledException)
+            {
+                lastError = error;
+            }
+        }
+        throw new HttpRequestException("漫画图片 CDN 暂时不可用，已尝试包子漫画备用节点", lastError);
     }
 
     private async Task<IResult> HuyaLiveAsync(string room, CancellationToken cancellationToken)
@@ -462,4 +490,5 @@ internal sealed partial class BridgeServer : IAsyncDisposable
 
     private sealed record HuyaLiveTicket(HuyaResolvedStream Stream, DateTimeOffset ExpiresAt);
     private sealed record LiveAssetTicket(string Url, string Referer, DateTimeOffset ExpiresAt);
+    private sealed record BufferedImage(byte[] Bytes, string ContentType);
 }

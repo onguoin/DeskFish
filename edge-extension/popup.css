@@ -502,6 +502,9 @@ textarea + .secondary-action { border-radius: 0 0 7px 7px; }
 .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 11px; height: 11px; border-radius: 50%; background: #7f9996; transition: 150ms ease; }
 .toggle-row input:checked + .switch { border-color: var(--teal); background: #a9ded5; }
 .toggle-row input:checked + .switch::after { left: 18px; background: #248f81; }
+.comic-sort-row { margin: 8px 0 4px; padding: 7px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.comic-sort-row strong { display: block; color: var(--mint); font-size: 10px; }
+.comic-sort-row small { display: block; max-width: 260px; margin-top: 3px; color: var(--mist); font-size: 8px; line-height: 1.45; }
 
 .comic-provider-panel { margin-top: 4px; }
 .comic-search-row { display: grid; grid-template-columns: minmax(0, 1fr) 66px; gap: 7px; }

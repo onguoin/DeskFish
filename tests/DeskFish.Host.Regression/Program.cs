@@ -39,6 +39,22 @@ for (var index = 0; index < expected.Length; index++)
 }
 
 Console.WriteLine("Baozi chapter order regression: PASS");
+const string catalogHtml = """
+  <a href="/user/page_direct?id=latest" class="comics-chapters__item"><span>最新预览</span></a>
+  <div id="chapter-items">
+    <a href="/user/page_direct?chapter_slot=0" class="comics-chapters__item"><span>序章</span></a>
+    <a href="/user/page_direct?chapter_slot=1" class="comics-chapters__item"><span>第一话</span></a>
+  </div>
+  <button id="button_show_all_chatper">查看全部</button>
+  """;
+var catalogChapters = BaoziChapterParser.Parse(catalogHtml);
+if (!catalogChapters.Select(chapter => chapter.Title).SequenceEqual(new[] { "序章", "第一话" }))
+    Fail("包子章节解析混入了目录外的最新预览项");
+var imageCandidates = BaoziImageFallback.Candidates("https://s2.bzcdn.net/scomic/example/0/1/1.jpg");
+if (imageCandidates.Count < 4 || imageCandidates[1].Host != "static-tw.baozimh.com"
+    || imageCandidates.Select(item => item.AbsolutePath).Distinct().Count() != 1)
+    Fail("包子图片备用 CDN 列表错误");
+Console.WriteLine("Baozi catalog scope and image fallback regression: PASS");
 var splitNovel = NovelChapterSplitter.Split("书名\n作者\n第一章 开始\n正文。\n第二章 继续\n内容。\n番外 小记\n结束。");
 var splitTitles = splitNovel.Chapters.Select(chapter => chapter.Title).ToArray();
 var expectedSplitTitles = new[] { "开头", "第一章 开始", "第二章 继续", "番外 小记" };
