@@ -20,7 +20,7 @@ internal sealed class MainForm : Form
 
     public MainForm(BridgeServer server)
     {
-        Text = "DeskFish · 本地阅读引擎";
+        Text = "DeskFish · 本地阅读与直播引擎";
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedSingle;
         ClientSize = new Size(640, 410);
@@ -53,7 +53,7 @@ internal sealed class MainForm : Form
         title.Font = new Font("Bahnschrift", 24F, FontStyle.Bold);
         var version = Label($"v{BridgeServer.Version}", 492, 27, 110, 30, 9F, FontStyle.Bold, Mist);
         version.TextAlign = ContentAlignment.MiddleRight;
-        var subtitle = Label("本地漫画与小说引擎 · 只监听这台电脑", 105, 95, 390, 27, 9F, FontStyle.Regular, Mist);
+        var subtitle = Label("本地漫画、小说与直播引擎 · 只监听这台电脑", 105, 95, 430, 27, 9F, FontStyle.Regular, Mist);
 
         var wake = new Panel { BackColor = Coral, Location = new Point(31, 128), Size = new Size(94, 3) };
         var wakeTail = new Panel { BackColor = Color.FromArgb(48, 113, 108), Location = new Point(125, 129), Size = new Size(477, 1) };
@@ -74,7 +74,7 @@ internal sealed class MainForm : Form
         var endpoint = Label(BridgeServer.Endpoint, 20, 43, 260, 28, 9F, FontStyle.Regular, Mint);
         endpoint.Font = new Font("Cascadia Mono", 9F);
         var sources = Label(server.SourceSummary, 20, 70, 530, 27, 8.5F, FontStyle.Regular, Mist);
-        var cache = Label("漫画预读前后各 5 页 · 小说与元数据落盘缓存 · 14 天自动清理", 20, 96, 530, 27, 8F, FontStyle.Regular, Mist);
+        var cache = Label("漫画预读前后各 5 页 · 虎牙短时 HLS 代理 · 元数据 14 天清理", 20, 96, 530, 27, 8F, FontStyle.Regular, Mist);
         statusCard.Controls.AddRange([statusStripe, status, endpoint, sources, cache]);
 
         var openButton = ActionButton("打开状态页", 31, 296, 160, primary: true);
@@ -116,7 +116,7 @@ internal sealed class MainForm : Form
         _tray = new NotifyIcon
         {
             Icon = Icon,
-            Text = "DeskFish 本地阅读引擎",
+            Text = "DeskFish 本地阅读与直播引擎",
             ContextMenuStrip = trayMenu,
             Visible = true
         };

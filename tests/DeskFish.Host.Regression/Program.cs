@@ -80,6 +80,17 @@ const string qidianChapterHtml = """
 var qidianChapter = QidianNovelSource.ParseChapterPage(qidianChapterHtml, "1115277", "22058859");
 if (qidianChapter != "第一段 & 内容\n第二段\n换行") Fail($"起点章节正文清理错误：{qidianChapter}");
 Console.WriteLine("Qidian public-page parser regression: PASS");
+
+var huyaFormat = Convert.ToBase64String(Encoding.UTF8.GetBytes("DeskFishPrefix_$0_$1_$2_$3"));
+var huyaHtml = $$"""
+<script>window.test = { stream: {"data":[{"gameLiveInfo":{"introduction":"测试直播","nick":"测试主播"},"gameStreamInfoList":[{"sCdnType":"AL","sHlsUrl":"http://al.hls.huya.com/src","sStreamName":"al-stream","sHlsUrlSuffix":"m3u8","sFlvAntiCode":"fm={{Uri.EscapeDataString(huyaFormat)}}&ctype=huya_live&fs=bgct"},{"sCdnType":"TX","sHlsUrl":"http://tx.hls.huya.com/src","sStreamName":"tx-stream","sHlsUrlSuffix":"m3u8","sFlvAntiCode":"fm={{Uri.EscapeDataString(huyaFormat)}}&ctype=huya_live&fs=bgct"}] }],"iWebDefaultBitRate":0 };</script>
+""";
+var huyaParsed = HuyaLiveSource.ParsePage("660000", huyaHtml);
+if (huyaParsed.Title != "测试直播" || huyaParsed.Anchor != "测试主播" || huyaParsed.Streams.Count != 2) Fail("虎牙直播页或多 CDN 列表解析错误");
+var huyaPlaylist = HuyaLiveSource.BuildPlaylistUrl(huyaParsed.Streams[0]);
+if (huyaPlaylist.Scheme != "https" || !huyaPlaylist.AbsoluteUri.Contains("wsSecret=", StringComparison.Ordinal)
+    || !huyaPlaylist.AbsoluteUri.Contains("codec=264", StringComparison.Ordinal)) Fail("虎牙 HLS 动态签名生成错误");
+Console.WriteLine("Huya live parser/signature regression: PASS");
 if (args.Contains("--live", StringComparer.OrdinalIgnoreCase))
 {
     using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
@@ -128,6 +139,18 @@ if (args.Contains("--qidian-book-live", StringComparer.OrdinalIgnoreCase))
     if (book.Chapters.Count < 140 || runeCount < 200_000) Fail($"《斗罗大陆》公开章节整本缓存结果异常：{book.Chapters.Count} 章 / {runeCount:N0} 字符");
     if (book.Chapters.Select(chapter => chapter.Sequence).Where((sequence, index) => sequence != index).Any()) Fail("《斗罗大陆》公开章节缓存顺序错误");
     Console.WriteLine($"Qidian public chapters cache regression: PASS ({book.Chapters.Count} chapters, {runeCount:N0} characters)");
+}
+if (args.Contains("--huya-live", StringComparer.OrdinalIgnoreCase))
+{
+    using var source = new HuyaLiveSource();
+    var stream = await source.ResolveAsync("660000", CancellationToken.None);
+    var first = await source.FetchPlaylistAsync(stream, CancellationToken.None);
+    await Task.Delay(1100);
+    var second = await source.FetchPlaylistAsync(stream, CancellationToken.None);
+    if (!first.Playlist.StartsWith("#EXTM3U", StringComparison.Ordinal)
+        || !second.Playlist.StartsWith("#EXTM3U", StringComparison.Ordinal)) Fail("虎牙 HLS 播放清单返回异常");
+    if (first.RemoteUrl == second.RemoteUrl) Fail("虎牙 HLS 播放清单没有刷新动态签名");
+    Console.WriteLine($"Huya live HLS regression: PASS ({stream.Anchor} · {stream.Title})");
 }
 return;
 

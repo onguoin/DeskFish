@@ -6,7 +6,8 @@ const DEFAULT_SETTINGS = {
 
 const DEFAULT_MEDIA_CONFIG = {
   type: "bilibili",
-  huyaRoom: ""
+  huyaRoom: "",
+  bilibiliLiveRoom: ""
 };
 
 const shell = document.querySelector("#adShell");
@@ -20,17 +21,11 @@ let settings = { ...DEFAULT_SETTINGS };
 let mediaConfig = { ...DEFAULT_MEDIA_CONFIG };
 let mediaToken = "";
 let revealed = false;
+let liveRecoveryAt = 0;
 
 function clampIndex(value) {
   if (!playlist.length) return 0;
   return (value % playlist.length + playlist.length) % playlist.length;
-}
-
-function normalizeHuyaRoom(value) {
-  const trimmed = String(value || "").trim();
-  const pathMatch = trimmed.match(/(?:https?:\/\/)?(?:[^/]+\.)?huya\.com\/(?:iframe\/)?([^/?#]+)/i);
-  const candidate = pathMatch?.[1] || trimmed;
-  return /^[0-9A-Za-z_-]{2,40}$/.test(candidate) ? candidate : "";
 }
 
 function newToken() {
@@ -44,6 +39,13 @@ function playerParameters(url) {
   url.searchParams.set("muted", settings.muted ? "1" : "0");
   url.searchParams.set("deskframe_token", mediaToken);
   url.searchParams.set("deskframe_visible", revealed ? "1" : "0");
+  url.searchParams.set(
+    "deskframe_playback",
+    globalThis.DeskFishMedia.shouldKeepPlaying(mediaConfig.type, revealed) ? "1" : "0"
+  );
+  if (globalThis.DeskFishMedia.isLiveMediaType(mediaConfig.type)) {
+    url.searchParams.set("deskframe_live", "1");
+  }
   return url;
 }
 
@@ -58,11 +60,19 @@ function mediaUrl() {
     return url.href;
   }
   if (mediaConfig.type === "huya") {
-    const room = normalizeHuyaRoom(mediaConfig.huyaRoom);
+    const room = globalThis.DeskFishMedia.normalizeHuyaRoom(mediaConfig.huyaRoom);
     if (!room) return "";
-    const url = playerParameters(new URL(`https://liveshare.huya.com/iframe/${encodeURIComponent(room)}`));
-    url.searchParams.set("danmaku", settings.danmaku ? "1" : "0");
+    const url = playerParameters(new URL(chrome.runtime.getURL("live/index.html")));
+    url.searchParams.set("platform", "huya");
+    url.searchParams.set("room", room);
     return url.href;
+  }
+  if (mediaConfig.type === "bilibili-live") {
+    return globalThis.DeskFishMedia.createBilibiliLivePlayerUrl(
+      mediaConfig.bilibiliLiveRoom,
+      settings,
+      { token: mediaToken, revealed }
+    );
   }
   if (["gomoku", "2048", "snake"].includes(mediaConfig.type)) {
     const url = playerParameters(new URL(chrome.runtime.getURL("games/index.html")));
@@ -80,7 +90,8 @@ function syncVisibility(retry = false) {
   const message = {
     type: "deskframe:media-visibility",
     token: mediaToken,
-    visible: revealed
+    visible: revealed,
+    playbackActive: globalThis.DeskFishMedia.shouldKeepPlaying(mediaConfig.type, revealed)
   };
   frame.contentWindow.postMessage(message, "*");
   if (retry) {
@@ -131,6 +142,17 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden) setReveal(false);
 });
 frame.addEventListener("load", () => syncVisibility(true));
+window.addEventListener("message", (event) => {
+  if (event.data?.type !== "deskframe:media-stalled") return;
+  if (event.source !== frame.contentWindow || event.data.token !== mediaToken) return;
+  if (!globalThis.DeskFishMedia.isLiveMediaType(mediaConfig.type)) return;
+  const now = Date.now();
+  if (now - liveRecoveryAt < 30000 || !frame.src) return;
+  liveRecoveryAt = now;
+  const url = new URL(frame.src);
+  url.searchParams.set("deskframe_recovery", String(now));
+  frame.src = url.href;
+});
 
 port.onMessage.addListener((message) => {
   if (message?.type === "next") void changeVideo(1);

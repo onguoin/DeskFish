@@ -30,8 +30,10 @@
     },
     mediaConfig: {
       type: "bilibili",
-      huyaRoom: ""
+      huyaRoom: "",
+      bilibiliLiveRoom: ""
     },
+    liveRecoveryAt: 0,
     comicSelection: null,
     ebook: null,
     ebookOffset: 0,
@@ -371,6 +373,10 @@
     if (state.mediaConfig.type === "huya" && !normalizeHuyaRoom(state.mediaConfig.huyaRoom)) {
       return "请先在扩展面板中填写虎牙房间号";
     }
+    if (state.mediaConfig.type === "bilibili-live"
+      && !globalThis.DeskFishMedia.normalizeBilibiliLiveRoom(state.mediaConfig.bilibiliLiveRoom)) {
+      return "请先在扩展面板中填写 Bilibili 直播房间号";
+    }
     if (state.mediaConfig.type === "comic" && !state.comicSelection?.id) {
       return "请先在扩展面板中选择一本漫画或一个章节";
     }
@@ -465,24 +471,31 @@
     url.searchParams.set("poster", "1");
     url.searchParams.set("deskframe_token", state.mediaToken);
     url.searchParams.set("deskframe_visible", shouldRevealMedia() ? "1" : "0");
+    url.searchParams.set("deskframe_playback", shouldRevealMedia() ? "1" : "0");
     return url.href;
   }
 
   function normalizeHuyaRoom(value) {
-    const trimmed = String(value || "").trim();
-    const pathMatch = trimmed.match(/(?:https?:\/\/)?(?:[^/]+\.)?huya\.com\/(?:iframe\/)?([^/?#]+)/i);
-    const candidate = pathMatch?.[1] || trimmed;
-    return /^[0-9A-Za-z_-]{2,40}$/.test(candidate) ? candidate : "";
+    return globalThis.DeskFishMedia.normalizeHuyaRoom(value);
   }
 
   function createHuyaUrl(room) {
-    const url = new URL(`https://liveshare.huya.com/iframe/${encodeURIComponent(room)}`);
-    url.searchParams.set("autoplay", state.settings.autoplay ? "1" : "0");
+    const url = new URL(chrome.runtime.getURL("live/index.html"));
+    url.searchParams.set("platform", "huya");
+    url.searchParams.set("room", room);
     url.searchParams.set("muted", state.settings.muted ? "1" : "0");
-    url.searchParams.set("danmaku", state.settings.danmaku ? "1" : "0");
     url.searchParams.set("deskframe_token", state.mediaToken);
     url.searchParams.set("deskframe_visible", shouldRevealMedia() ? "1" : "0");
+    url.searchParams.set("deskframe_playback", "1");
+    url.searchParams.set("deskframe_live", "1");
     return url.href;
+  }
+
+  function createBilibiliLiveUrl(room) {
+    return globalThis.DeskFishMedia.createBilibiliLivePlayerUrl(room, state.settings, {
+      token: state.mediaToken,
+      revealed: shouldRevealMedia()
+    });
   }
 
   function createGameUrl(type) {
@@ -490,6 +503,7 @@
     url.searchParams.set("game", type);
     url.searchParams.set("deskframe_token", state.mediaToken);
     url.searchParams.set("deskframe_visible", shouldRevealMedia() ? "1" : "0");
+    url.searchParams.set("deskframe_playback", shouldRevealMedia() ? "1" : "0");
     return url.href;
   }
 
@@ -497,6 +511,7 @@
     const url = new URL(chrome.runtime.getURL("comic/index.html"));
     url.searchParams.set("deskframe_token", state.mediaToken);
     url.searchParams.set("deskframe_visible", shouldRevealMedia() ? "1" : "0");
+    url.searchParams.set("deskframe_playback", shouldRevealMedia() ? "1" : "0");
     return url.href;
   }
 
@@ -522,6 +537,17 @@
         label: `虎牙 ${room}`,
         detail: `虎牙直播间 ${room}`,
         src: createHuyaUrl(room)
+      };
+    }
+    if (type === "bilibili-live") {
+      const room = globalThis.DeskFishMedia.normalizeBilibiliLiveRoom(state.mediaConfig.bilibiliLiveRoom);
+      if (!room) return null;
+      return {
+        type,
+        title: `Bilibili 直播间 ${room}`,
+        label: `B站 ${room}`,
+        detail: `Bilibili 直播间 ${room}`,
+        src: createBilibiliLiveUrl(room)
       };
     }
     const games = {
@@ -696,7 +722,11 @@
     const message = {
       type: "deskframe:media-visibility",
       token: state.mediaToken,
-      visible: shouldRevealMedia()
+      visible: shouldRevealMedia(),
+      playbackActive: globalThis.DeskFishMedia.shouldKeepPlaying(
+        state.activeMediaType,
+        shouldRevealMedia()
+      )
     };
     frame.contentWindow.postMessage(message, "*");
     if (retry) {
@@ -713,6 +743,20 @@
     state.wrapper.classList.toggle("is-revealed", visible);
     syncMediaVisibility();
   }
+
+  window.addEventListener("message", (event) => {
+    if (event.data?.type !== "deskframe:media-stalled") return;
+    if (!state.wrapper?.isConnected || event.data.token !== state.mediaToken) return;
+    const frame = state.wrapper.querySelector(".df-player-frame");
+    if (!frame?.contentWindow || event.source !== frame.contentWindow) return;
+    if (!globalThis.DeskFishMedia.isLiveMediaType(state.activeMediaType)) return;
+    const now = Date.now();
+    if (now - state.liveRecoveryAt < 30000) return;
+    state.liveRecoveryAt = now;
+    const url = new URL(frame.src);
+    url.searchParams.set("deskframe_recovery", String(now));
+    frame.src = url.href;
+  });
 
   function renderCurrentMedia() {
     if (!state.wrapper?.isConnected) return;

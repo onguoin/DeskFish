@@ -27,6 +27,7 @@
           <span>替换内容</span>
           <select id="mediaTypeSelect">
             <option value="bilibili">Bilibili 视频队列</option>
+            <option value="bilibili-live">Bilibili 直播间</option>
             <option value="huya">虎牙直播间</option>
             <option value="gomoku">五子棋 · 人机对战</option>
             <option value="2048">2048</option>
@@ -37,7 +38,12 @@
         <div id="huyaConfig" class="huya-config" hidden>
           <label class="input-label" for="huyaRoomInput">虎牙房间号或直播间链接</label>
           <input id="huyaRoomInput" class="room-input" type="text" spellcheck="false" placeholder="例如 660000 或 huya.com/660000">
-          <p class="source-note">使用虎牙官方 liveshare 播放页；主播下播时会显示平台提示。</p>
+          <p class="source-note">由 DeskFish.exe 在本机解析并代理公开 HLS 直播流；无试看遮罩、平台控件和弹幕。</p>
+        </div>
+        <div id="bilibiliLiveConfig" class="huya-config" hidden>
+          <label class="input-label" for="bilibiliLiveRoomInput">Bilibili 房间号或直播间链接</label>
+          <input id="bilibiliLiveRoomInput" class="room-input" type="text" inputmode="numeric" spellcheck="false" placeholder="例如 23058 或 live.bilibili.com/23058">
+          <p class="source-note">使用 Bilibili 官方直播播放器；鼠标移开只隐藏画面，不会暂停直播。</p>
         </div>
         <button id="activateButton" class="primary-action" type="button">
           <span id="activateLabel">选择图片或视频</span>
@@ -215,7 +221,7 @@
           <input id="hoverRevealToggle" type="checkbox">
           <span class="switch" aria-hidden="true"></span>
         </label>
-        <p class="setting-note">移开鼠标立即显示原图片；播放器不重载，会自动暂停，回来后继续。</p>
+        <p class="setting-note">移开鼠标立即显示原图片；普通视频会暂停并在回来后续播，直播只隐藏画面、保持不断流。</p>
         <label class="toggle-row">
           <span>自动播放</span>
           <input id="autoplayToggle" type="checkbox">
@@ -240,12 +246,13 @@
         <button id="shortcutsButton" class="shortcut-link" type="button">快捷键未生效？打开 Edge 快捷键设置</button>
         <div class="footer-meta">
           <a href="https://github.com/onguoin/DeskFish" target="_blank" rel="noreferrer">GitHub · DeskFish <span>↗</span></a>
-          <span>DeskFish v0.12.0</span>
+          <span>DeskFish v0.12.1</span>
         </div>
       </footer>
 
       <div id="status" class="status" role="status" aria-live="polite" hidden></div>
     </main>
+    <script src="media.js"></script>
     <script src="comic/storage.js"></script>
     <script src="comic/chapter-list.js"></script>
     <script src="comic/manager.js"></script>

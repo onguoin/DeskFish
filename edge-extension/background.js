@@ -8,7 +8,8 @@ const DEFAULT_SETTINGS = Object.freeze({
 
 const DEFAULT_MEDIA_CONFIG = Object.freeze({
   type: "bilibili",
-  huyaRoom: ""
+  huyaRoom: "",
+  bilibiliLiveRoom: ""
 });
 
 const AD_WINDOW_STORAGE_KEY = "deskframeAdWindowId";
@@ -175,7 +176,7 @@ async function ensurePageController(tab) {
   });
   await chrome.scripting.executeScript({
     target: { tabId: tab.id },
-    files: ["content.js"]
+    files: ["media.js", "content.js"]
   });
 }
 

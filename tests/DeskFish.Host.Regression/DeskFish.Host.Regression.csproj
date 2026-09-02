@@ -13,5 +13,6 @@
     <Compile Include="..\..\windows-host\Sources\NovelChapterSplitter.cs" Link="Sources\NovelChapterSplitter.cs" />
     <Compile Include="..\..\windows-host\Sources\GutenbergOpdsNovelSource.cs" Link="Sources\GutenbergOpdsNovelSource.cs" />
     <Compile Include="..\..\windows-host\Sources\QidianNovelSource.cs" Link="Sources\QidianNovelSource.cs" />
+    <Compile Include="..\..\windows-host\Sources\HuyaLiveSource.cs" Link="Sources\HuyaLiveSource.cs" />
   </ItemGroup>
 </Project>

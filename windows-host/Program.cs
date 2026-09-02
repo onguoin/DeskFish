@@ -2,12 +2,13 @@ namespace DeskFrame.Host;
 
 internal static class Program
 {
-    private const string MutexName = "Local\\DeskFrame.LocalMangaEngine.v1";
+    private const string DefaultMutexName = "Local\\DeskFrame.LocalMangaEngine.v1";
 
     [STAThread]
     private static void Main()
     {
-        using var singleInstance = new Mutex(true, MutexName, out var createdNew);
+        var mutexName = Environment.GetEnvironmentVariable("DESKFISH_MUTEX_NAME") ?? DefaultMutexName;
+        using var singleInstance = new Mutex(true, mutexName, out var createdNew);
         if (!createdNew)
         {
             MessageBox.Show("DeskFish 本地阅读引擎已经在运行。", "DeskFish", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -19,7 +20,20 @@ internal static class Program
         try
         {
             server.StartAsync().GetAwaiter().GetResult();
-            Application.Run(new MainForm(server));
+            if (Environment.GetEnvironmentVariable("DESKFISH_HEADLESS") == "1")
+            {
+                using var stopped = new ManualResetEventSlim(false);
+                Console.CancelKeyPress += (_, eventArgs) =>
+                {
+                    eventArgs.Cancel = true;
+                    stopped.Set();
+                };
+                stopped.Wait();
+            }
+            else
+            {
+                Application.Run(new MainForm(server));
+            }
         }
         catch (Exception error)
         {

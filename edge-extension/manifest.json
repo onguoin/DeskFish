@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "DeskFish · 隐形播放器、漫画与电子书",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "替换网页媒体、播放视频与小游戏，并通过随包本地引擎阅读漫画、本地 TXT、中文网络小说公开章节和在线公版书。",
   "homepage_url": "https://github.com/onguoin/DeskFish",
   "permissions": [
@@ -14,7 +14,6 @@
   "host_permissions": [
     "https://*.bilibili.com/*",
     "https://b23.tv/*",
-    "https://liveshare.huya.com/*",
     "https://api.mangadex.org/*",
     "https://uploads.mangadex.org/*",
     "https://komiic.com/*",
@@ -31,16 +30,16 @@
     {
       "matches": [
         "https://player.bilibili.com/*",
-        "https://liveshare.huya.com/*"
+        "https://www.bilibili.com/blackboard/live/*"
       ],
-      "js": ["frame-bridge.js"],
+      "js": ["media.js", "frame-bridge.js"],
       "run_at": "document_start",
       "all_frames": true
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["games/*", "comic/*", "vendor/*"],
+      "resources": ["games/*", "comic/*", "live/*", "vendor/*", "media.js"],
       "matches": ["<all_urls>"]
     }
   ],

@@ -4,83 +4,53 @@
   if (!token) return;
 
   let visible = parameters.get("deskframe_visible") === "1";
-  const shouldMute = parameters.get("muted") === "1";
-  const shouldShowDanmaku = parameters.get("danmaku") === "1";
+  let playbackActive = parameters.has("deskframe_playback")
+    ? parameters.get("deskframe_playback") === "1"
+    : visible;
+  const shouldMute = parameters.get("muted") === "1" || parameters.get("mute") === "1";
   const resumeCandidates = new Set();
-  const isBilibili = location.hostname === "player.bilibili.com";
-  const isHuya = location.hostname === "liveshare.huya.com";
+  const isBilibiliLive = location.hostname === "www.bilibili.com"
+    && location.pathname.includes("/blackboard/live/");
+  const isBilibili = location.hostname === "player.bilibili.com" || isBilibiliLive;
+  const isLive = parameters.get("deskframe_live") === "1" || isBilibiliLive;
   let scrubScheduled = false;
   const scrubRoots = new Set();
-
-  function syncHuyaDanmaku() {
-    if (!isHuya) return;
-    const toggle = document.querySelector("#player-danmu-btn, .danmu-show-btn, [title*='弹幕']");
-    if (!(toggle instanceof HTMLElement)) return;
-    const title = String(toggle.title || toggle.getAttribute("aria-label") || "");
-    const isEnabled = title.includes("关闭弹幕");
-    const isDisabled = title.includes("开启弹幕");
-    if (!isEnabled && !isDisabled) return;
-    const desired = shouldShowDanmaku ? "on" : "off";
-    if (toggle.dataset.deskframeDanmaku === desired) return;
-    toggle.dataset.deskframeDanmaku = desired;
-    if (isEnabled !== shouldShowDanmaku) toggle.click();
-  }
+  let liveMedia = null;
+  let liveTime = -1;
+  let liveProgressAt = Date.now();
+  let liveReportedAt = 0;
 
   function installCleanPlayerStyle() {
-    if (!isBilibili && !isHuya) return;
+    if (!isBilibili) return;
     const style = document.createElement("style");
     style.dataset.deskframeCleanPlayer = "true";
     style.textContent = `
       html, body { overflow: hidden !important; background: #000 !important; }
       video { max-width: 100% !important; max-height: 100% !important; }
-      ${isBilibili ? `
-        .bpx-player-control-wrap,
-        .bpx-player-top-wrap,
-        .bpx-player-toast-wrap,
-        .bpx-player-dialog-wrap,
-        .bpx-player-ending-wrap,
-        .bpx-player-popular-panel,
-        .bpx-player-video-info,
-        .bilibili-player-video-control-wrap,
-        .bilibili-player-video-top,
-        .bilibili-player-video-toast-wrp,
-        .bilibili-player-video-panel,
-        [class*="recommend-panel"],
-        [class*="ending-panel"] { display: none !important; }
-      ` : ""}
-      ${isHuya ? `
-        #player-ctrl-wrap,
-        .player-ctrl-wrap,
-        .player-ctrl-btn,
-        .activity-enter,
-        [class*="room-jump"],
-        [class*="go-room"],
-        [class*="player-control"],
-        [class*="playerControl"],
-        [class*="player_ctrl"],
-        [class*="control-wrap"],
-        [class*="enter-room"],
-        [class*="enterRoom"],
-        [class*="room-enter"],
-        [class*="quality-panel"],
-        [class*="danmu-switch"],
-        [class*="barrage-switch"] { display: none !important; }
-        #app,
-        #video_container,
-        #player-wrap,
-        .player-wrap,
-        #player-video,
-        .player-video { width: 100% !important; height: 100% !important; }
-      ` : ""}
+      .bpx-player-control-wrap,
+      .bpx-player-top-wrap,
+      .bpx-player-toast-wrap,
+      .bpx-player-dialog-wrap,
+      .bpx-player-ending-wrap,
+      .bpx-player-popular-panel,
+      .bpx-player-video-info,
+      .bilibili-player-video-control-wrap,
+      .bilibili-player-video-top,
+      .bilibili-player-video-toast-wrp,
+      .bilibili-player-video-panel,
+      [class*="recommend-panel"],
+      [class*="ending-panel"],
+      [class*="activity-entry"],
+      [class*="room-entry"] { display: none !important; }
     `;
     (document.head || document.documentElement).appendChild(style);
   }
 
   function scrubPlatformChrome(roots = [document]) {
-    if (!isBilibili && !isHuya) return;
-    const phrases = isHuya
-      ? ["进入直播间", "打开虎牙", "超清", "高清", "流畅", "弹幕"]
-      : ["进入哔哩哔哩", "打开客户端", "登录后观看", "相关推荐"];
+    if (!isBilibili) return;
+    const phrases = [
+      "进入直播间", "进入哔哩哔哩", "打开哔哩哔哩", "打开客户端", "登录后观看", "相关推荐"
+    ];
     const nodes = new Set();
     for (const root of roots) {
       if (!(root instanceof Element) && root !== document) continue;
@@ -109,12 +79,14 @@
       const roots = Array.from(scrubRoots);
       scrubRoots.clear();
       scrubPlatformChrome(roots.length ? roots : [document]);
-      syncHuyaDanmaku();
     }, 180);
   }
 
-  function mediaElements() {
-    return Array.from(document.querySelectorAll("video, audio"));
+  function mediaElements(root = document) {
+    const elements = [];
+    if (root instanceof HTMLMediaElement) elements.push(root);
+    root.querySelectorAll?.("video, audio").forEach((element) => elements.push(element));
+    return elements;
   }
 
   function pauseMedia(element, remember = true) {
@@ -124,48 +96,86 @@
     if (!element.paused) element.pause();
   }
 
-  function applyVisibility() {
-    if (!visible) {
+  function playMedia(element) {
+    if (!(element instanceof HTMLMediaElement) || !playbackActive) return;
+    if (shouldMute) element.muted = true;
+    if (!isLive && !resumeCandidates.has(element)) return;
+    element.play()
+      .then(() => resumeCandidates.delete(element))
+      .catch(() => {
+        if (!isLive) resumeCandidates.add(element);
+      });
+  }
+
+  function applyPlayback() {
+    if (!playbackActive) {
       mediaElements().forEach((element) => pauseMedia(element));
       return;
     }
+    mediaElements().forEach((element) => playMedia(element));
+  }
 
-    for (const element of Array.from(resumeCandidates)) {
-      if (!element.isConnected) {
-        resumeCandidates.delete(element);
-        continue;
-      }
-      if (shouldMute) element.muted = true;
-      element.play()
-        .then(() => resumeCandidates.delete(element))
-        .catch(() => {
-          // Keep it queued: some embeds reject play until their own initialization finishes.
-        });
+  function largestLiveMedia() {
+    return mediaElements()
+      .filter((element) => !element.ended)
+      .sort((left, right) => {
+        const leftRect = left.getBoundingClientRect();
+        const rightRect = right.getBoundingClientRect();
+        return rightRect.width * rightRect.height - leftRect.width * leftRect.height;
+      })[0] || null;
+  }
+
+  function monitorLivePlayback() {
+    if (!isLive || !playbackActive) {
+      liveMedia = null;
+      liveTime = -1;
+      liveProgressAt = Date.now();
+      return;
+    }
+    const media = largestLiveMedia();
+    if (!media) return;
+    const now = Date.now();
+    const currentTime = Number(media.currentTime) || 0;
+    if (media !== liveMedia || currentTime > liveTime + 0.08 || currentTime < liveTime - 0.5) {
+      liveMedia = media;
+      liveTime = currentTime;
+      liveProgressAt = now;
+      return;
+    }
+    if (media.paused || now - liveProgressAt > 8000) playMedia(media);
+    if (now - liveProgressAt > 18000 && now - liveReportedAt > 30000) {
+      liveReportedAt = now;
+      window.parent.postMessage({ type: "deskframe:media-stalled", token }, "*");
     }
   }
 
   window.addEventListener("message", (event) => {
-    if (event.source !== window.parent) return;
-    if (event.data?.type !== "deskframe:media-visibility") return;
+    if (event.source !== window.parent || event.data?.type !== "deskframe:media-visibility") return;
     if (event.data.token !== token) return;
     visible = Boolean(event.data.visible);
-    applyVisibility();
+    playbackActive = typeof event.data.playbackActive === "boolean"
+      ? event.data.playbackActive
+      : visible;
+    applyPlayback();
   });
 
   document.addEventListener("play", (event) => {
-    if (!visible && event.target instanceof HTMLMediaElement) {
-      pauseMedia(event.target);
-    }
+    if (!playbackActive && event.target instanceof HTMLMediaElement) pauseMedia(event.target);
   }, true);
+
+  for (const eventName of ["loadeddata", "canplay"]) {
+    document.addEventListener(eventName, (event) => {
+      if (isLive && playbackActive && event.target instanceof HTMLMediaElement) playMedia(event.target);
+    }, true);
+  }
 
   const observer = new MutationObserver((records) => {
     for (const record of records) {
       for (const node of record.addedNodes) {
         if (!(node instanceof Element)) continue;
-        if (!visible) {
-          if (node.matches("video, audio")) pauseMedia(node);
-          node.querySelectorAll("video, audio").forEach((element) => pauseMedia(element));
-        }
+        const addedMedia = mediaElements(node);
+        if (!playbackActive) addedMedia.forEach((element) => pauseMedia(element));
+        else if (isLive) addedMedia.forEach((element) => playMedia(element));
         schedulePlatformScrub(node);
       }
     }
@@ -175,11 +185,8 @@
     installCleanPlayerStyle();
     observer.observe(document.documentElement, { childList: true, subtree: true });
     scrubPlatformChrome();
-    syncHuyaDanmaku();
-    window.setTimeout(syncHuyaDanmaku, 350);
-    window.setTimeout(syncHuyaDanmaku, 1000);
-    window.setTimeout(syncHuyaDanmaku, 2200);
-    applyVisibility();
+    applyPlayback();
+    if (isLive) window.setInterval(monitorLivePlayback, 4000);
   };
 
   if (document.documentElement) begin();

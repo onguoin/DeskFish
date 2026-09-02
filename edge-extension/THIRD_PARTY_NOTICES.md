@@ -1,5 +1,14 @@
 # Third-party notices
 
+## hls.js
+
+- Package: `hls.js` 1.6.16
+- Source: https://github.com/video-dev/hls.js
+- Files: `vendor/hls.min.js`, `vendor/hls.js.LICENSE`
+- License: Apache License 2.0
+
+hls.js is bundled for Media Source Extensions playback of the short-lived HLS stream produced by the DeskFish local Huya proxy. It replaces Edge's native HLS path, which can reject valid Huya timestamp discontinuities. The full license text is included beside the bundled script.
+
 ## Free-book API integrations
 
 - Project Gutenberg official OPDS catalog: https://www.gutenberg.org/ebooks/search.opds/

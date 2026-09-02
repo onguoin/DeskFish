@@ -8,11 +8,13 @@ const DEFAULT_SETTINGS = {
 
 const DEFAULT_MEDIA_CONFIG = {
   type: "bilibili",
-  huyaRoom: ""
+  huyaRoom: "",
+  bilibiliLiveRoom: ""
 };
 
 const MEDIA_LABELS = {
   bilibili: "Bilibili · 横屏",
+  "bilibili-live": "Bilibili 直播 · 横屏",
   huya: "虎牙直播 · 横屏",
   gomoku: "五子棋 · 离线",
   "2048": "2048 · 离线",
@@ -33,6 +35,8 @@ const elements = {
   mediaTypeSelect: document.querySelector("#mediaTypeSelect"),
   huyaConfig: document.querySelector("#huyaConfig"),
   huyaRoomInput: document.querySelector("#huyaRoomInput"),
+  bilibiliLiveConfig: document.querySelector("#bilibiliLiveConfig"),
+  bilibiliLiveRoomInput: document.querySelector("#bilibiliLiveRoomInput"),
   comicSection: document.querySelector("#comicSection"),
   activateButton: document.querySelector("#activateButton"),
   activateLabel: document.querySelector("#activateLabel"),
@@ -128,16 +132,12 @@ function formatBytes(bytes) {
   return `${value >= 10 || exponent === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[exponent]}`;
 }
 
-function normalizeHuyaRoom(value) {
-  const trimmed = String(value || "").trim();
-  const pathMatch = trimmed.match(/(?:https?:\/\/)?(?:[^/]+\.)?huya\.com\/(?:iframe\/)?([^/?#]+)/i);
-  const candidate = pathMatch?.[1] || trimmed;
-  return /^[0-9A-Za-z_-]{2,40}$/.test(candidate) ? candidate : "";
-}
-
 function mediaSourceReady() {
   if (mediaConfig.type === "bilibili") return playlist.length > 0;
-  if (mediaConfig.type === "huya") return Boolean(normalizeHuyaRoom(mediaConfig.huyaRoom));
+  if (mediaConfig.type === "huya") return Boolean(globalThis.DeskFishMedia.normalizeHuyaRoom(mediaConfig.huyaRoom));
+  if (mediaConfig.type === "bilibili-live") {
+    return Boolean(globalThis.DeskFishMedia.normalizeBilibiliLiveRoom(mediaConfig.bilibiliLiveRoom));
+  }
   if (mediaConfig.type === "comic") return Boolean(comicSelection?.id);
   return Object.hasOwn(MEDIA_LABELS, mediaConfig.type);
 }
@@ -153,13 +153,15 @@ function renderMediaConfig() {
   mediaConfig.type = type;
   elements.mediaTypeSelect.value = type;
   elements.huyaConfig.hidden = type !== "huya";
+  elements.bilibiliLiveConfig.hidden = type !== "bilibili-live";
   elements.videoLibrarySection.hidden = type !== "bilibili";
   elements.comicSection.hidden = type !== "comic";
   elements.huyaRoomInput.value = mediaConfig.huyaRoom || "";
+  elements.bilibiliLiveRoomInput.value = mediaConfig.bilibiliLiveRoom || "";
   elements.sourceHint.textContent = MEDIA_LABELS[type];
   elements.activateLabel.textContent = type === "bilibili"
     ? "选择图片或视频"
-    : type === "huya"
+    : globalThis.DeskFishMedia.isLiveMediaType(type)
       ? "用直播替换图片或视频"
       : type === "comic"
         ? "用漫画替换图片或视频"
@@ -749,6 +751,11 @@ document.addEventListener("deskframe:comic-selection-changed", (event) => {
 });
 elements.huyaRoomInput.addEventListener("input", async () => {
   mediaConfig.huyaRoom = elements.huyaRoomInput.value.trim();
+  updateActivationAvailability();
+  await chrome.storage.local.set({ mediaConfig });
+});
+elements.bilibiliLiveRoomInput.addEventListener("input", async () => {
+  mediaConfig.bilibiliLiveRoom = elements.bilibiliLiveRoomInput.value.trim();
   updateActivationAvailability();
   await chrome.storage.local.set({ mediaConfig });
 });

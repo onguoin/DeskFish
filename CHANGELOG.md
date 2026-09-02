@@ -1,5 +1,23 @@
 # Changelog / 更新记录
 
+## 0.12.1 — 2026-09-02
+
+### 中文
+
+- 新增 Bilibili 直播间来源，可填写房间号或直播链接，并使用官方活动播放器的净化参数隐藏入口、互动区和多余控制组件。
+- 虎牙不再使用会触发“试看结束”的 `liveshare` 外链页；改由随包 `DeskFish.exe` 解析公开房间流、多 CDN 自动回退并通过短时本地 HLS 代理播放。
+- 内置 hls.js 1.6.16，修复 Edge 原生 HLS 管线在虎牙时间戳切片上停止播放的问题；不需要额外安装播放器或运行时。
+- 将“画面是否显示”与“是否继续播放”分离：普通视频移开鼠标后暂停，虎牙与 Bilibili 直播只隐藏画面并持续播放。
+- 直播播放器加入缓冲恢复、过期会话重连和短时分片内存释放；虎牙本地流固定为适合小窗的 2000 kbps 档位并默认不含弹幕。
+
+### English
+
+- Added Bilibili Live rooms through Bilibili's official activity-player embed with entry points, interaction panels, and excess controls disabled.
+- Replaced Huya's time-limited `liveshare` embed with a bundled local public-room resolver, multi-CDN fallback, and short-lived HLS proxy in `DeskFish.exe`.
+- Bundled hls.js 1.6.16 to avoid Edge's native HLS timestamp failures without requiring another player or runtime.
+- Split visual reveal from playback state: ordinary videos pause when hidden, while Huya and Bilibili live streams continue playing behind the restored cover.
+- Added live-buffer recovery, expired-session reconnects, short-lived segment cleanup, a small-window-friendly 2000 kbps Huya profile, and danmaku-free local playback.
+
 ## 0.12.0 — 2026-09-01
 
 ### 中文
