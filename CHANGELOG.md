@@ -1,5 +1,17 @@
 # Changelog / 更新记录
 
+## 0.12.3 — 2026-09-16
+
+### 中文
+
+- 隐藏 Bilibili 外链播放器的“进入哔哩哔哩，观看更高清”入口层，兼容该入口使用普通 `div` 而非按钮标签的情况。
+- 隐藏 Bilibili 播放器持续遮挡画面的中央加载/暂停状态图标，同时保留原有播放、暂停、进度续播和直播保活逻辑。
+
+### English
+
+- Hides the “Open Bilibili for higher quality” overlay even when Bilibili renders it as a plain `div` instead of a button.
+- Removes persistent center loading/pause chrome without changing playback, resume position, hover pausing, or live-stream keep-alive behavior.
+
 ## 0.12.2 — 2026-09-02
 
 ### 中文

@@ -29,6 +29,10 @@
       video { max-width: 100% !important; max-height: 100% !important; }
       .bpx-player-control-wrap,
       .bpx-player-top-wrap,
+      .bpx-player-relation-button,
+      .bpx-player-loading-panel,
+      .bpx-player-state-wrap,
+      .bpx-player-mini-state,
       .bpx-player-toast-wrap,
       .bpx-player-dialog-wrap,
       .bpx-player-ending-wrap,
@@ -41,7 +45,12 @@
       [class*="recommend-panel"],
       [class*="ending-panel"],
       [class*="activity-entry"],
-      [class*="room-entry"] { display: none !important; }
+      [class*="room-entry"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
     `;
     (document.head || document.documentElement).appendChild(style);
   }
@@ -54,8 +63,9 @@
     const nodes = new Set();
     for (const root of roots) {
       if (!(root instanceof Element) && root !== document) continue;
-      if (root instanceof Element && root.matches("button, a, [role='button']")) nodes.add(root);
-      root.querySelectorAll?.("button, a, [role='button']").forEach((node) => nodes.add(node));
+      const chromeSelector = "button, a, [role='button'], .bpx-player-relation-button";
+      if (root instanceof Element && root.matches(chromeSelector)) nodes.add(root);
+      root.querySelectorAll?.(chromeSelector).forEach((node) => nodes.add(node));
     }
     for (const node of nodes) {
       if (!(node instanceof HTMLElement) || node.dataset.deskframeHidden === "true") continue;

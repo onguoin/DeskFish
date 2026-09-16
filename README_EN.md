@@ -61,7 +61,7 @@ When a page has no suitable area, DeskFish can create one on the left, right, or
 
 ## Download and install
 
-Latest version: [**Download DeskFish for Windows x64**](https://github.com/onguoin/DeskFish/releases/latest/download/DeskFish-v0.12.2-Windows-x64.zip)
+Latest version: [**Download DeskFish for Windows x64**](https://github.com/onguoin/DeskFish/releases/latest/download/DeskFish-v0.12.3-Windows-x64.zip)
 
 1. Extract the ZIP and run `DeskFish.exe`. The release is self-contained; Python, Node.js, Java, Docker, and a separate .NET installation are not required.
 2. Open `edge://extensions` in Microsoft Edge and enable **Developer mode**.
@@ -117,7 +117,7 @@ Windows 10/11 and the .NET 10 SDK are required:
 ./build.ps1
 ```
 
-The package is written to `artifacts/DeskFish-v0.12.2-Windows-x64`. The Edge extension needs no build step and can be loaded directly from `edge-extension`.
+The package is written to `artifacts/DeskFish-v0.12.3-Windows-x64`. The Edge extension needs no build step and can be loaded directly from `edge-extension`.
 
 ## Repository layout
 
