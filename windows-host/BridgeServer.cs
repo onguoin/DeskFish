@@ -20,7 +20,7 @@ internal sealed partial class BridgeServer : IAsyncDisposable
     public static string Endpoint => Environment.GetEnvironmentVariable("DESKFISH_ENDPOINT")?.TrimEnd('/') is { Length: > 0 } configured
         ? configured
         : DefaultEndpoint;
-    public const string Version = "0.12.3";
+    public const string Version = "0.12.4";
 
     private readonly IReadOnlyDictionary<string, IMangaSource> _sources;
     private readonly IReadOnlyDictionary<string, INovelSource> _novelSources;

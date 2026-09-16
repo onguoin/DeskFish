@@ -1,5 +1,17 @@
 # Changelog / 更新记录
 
+## 0.12.4 — 2026-09-16
+
+### 中文
+
+- 修复 Bilibili 视频首次悬停正常、移开后再次悬停却重新出现入口提示和中央加载图标的问题。
+- 净化样式改为持续守护：恢复播放、播放器 DOM 更新或站点重建样式后都会重新注入，并对已出现的浮层做内联兜底隐藏。
+
+### English
+
+- Fixed Bilibili entry and center-loading overlays returning after leaving and hovering the replaced area a second time.
+- Player cleanup is now self-healing after playback resumes, DOM updates, or site-side style replacement, with direct inline hiding as a fallback.
+
 ## 0.12.3 — 2026-09-16
 
 ### 中文

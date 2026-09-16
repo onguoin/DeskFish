@@ -61,7 +61,7 @@ DeskFish 是一条藏在浏览器边上的小鱼，也是给上班摸鱼、午�
 
 ## 下载与安装
 
-最新版本：[**下载 DeskFish for Windows x64**](https://github.com/onguoin/DeskFish/releases/latest/download/DeskFish-v0.12.3-Windows-x64.zip)
+最新版本：[**下载 DeskFish for Windows x64**](https://github.com/onguoin/DeskFish/releases/latest/download/DeskFish-v0.12.4-Windows-x64.zip)
 
 1. 解压下载的 ZIP，先运行 `DeskFish.exe`。它是自包含程序，不需要另装 Python、Node.js、Java、Docker 或 .NET。
 2. 在 Edge 打开 `edge://extensions`，开启右上角“开发人员模式”。
@@ -117,7 +117,7 @@ Windows 可能因为程序尚未购买代码签名证书而显示“未知发布
 ./build.ps1
 ```
 
-输出位于 `artifacts/DeskFish-v0.12.3-Windows-x64`。Edge 扩展本身无需编译，直接加载 `edge-extension` 文件夹即可。
+输出位于 `artifacts/DeskFish-v0.12.4-Windows-x64`。Edge 扩展本身无需编译，直接加载 `edge-extension` 文件夹即可。
 
 ## 项目结构
 

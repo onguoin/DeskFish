@@ -13,6 +13,13 @@
     && location.pathname.includes("/blackboard/live/");
   const isBilibili = location.hostname === "player.bilibili.com" || isBilibiliLive;
   const isLive = parameters.get("deskframe_live") === "1" || isBilibiliLive;
+  const cleanPlayerStyleSelector = "style[data-deskframe-clean-player='true']";
+  const forcedChromeSelector = [
+    ".bpx-player-relation-button",
+    ".bpx-player-loading-panel",
+    ".bpx-player-state-wrap",
+    ".bpx-player-mini-state"
+  ].join(", ");
   let scrubScheduled = false;
   const scrubRoots = new Set();
   let liveMedia = null;
@@ -20,11 +27,7 @@
   let liveProgressAt = Date.now();
   let liveReportedAt = 0;
 
-  function installCleanPlayerStyle() {
-    if (!isBilibili) return;
-    const style = document.createElement("style");
-    style.dataset.deskframeCleanPlayer = "true";
-    style.textContent = `
+  const cleanPlayerStyle = `
       html, body { overflow: hidden !important; background: #000 !important; }
       video { max-width: 100% !important; max-height: 100% !important; }
       .bpx-player-control-wrap,
@@ -52,7 +55,28 @@
         pointer-events: none !important;
       }
     `;
-    (document.head || document.documentElement).appendChild(style);
+
+  function installCleanPlayerStyle() {
+    if (!isBilibili) return;
+    const host = document.head || document.documentElement;
+    if (!host) return;
+    let style = document.querySelector(cleanPlayerStyleSelector);
+    if (!(style instanceof HTMLStyleElement)) {
+      style = document.createElement("style");
+      style.dataset.deskframeCleanPlayer = "true";
+    }
+    if (style.textContent !== cleanPlayerStyle) style.textContent = cleanPlayerStyle;
+    if (style.parentNode !== host) host.appendChild(style);
+  }
+
+  function forceHidePlatformNode(node) {
+    if (!(node instanceof HTMLElement)) return;
+    node.dataset.deskframeHidden = "true";
+    node.setAttribute("aria-hidden", "true");
+    node.style.setProperty("display", "none", "important");
+    node.style.setProperty("visibility", "hidden", "important");
+    node.style.setProperty("opacity", "0", "important");
+    node.style.setProperty("pointer-events", "none", "important");
   }
 
   function scrubPlatformChrome(roots = [document]) {
@@ -61,12 +85,16 @@
       "进入直播间", "进入哔哩哔哩", "打开哔哩哔哩", "打开客户端", "登录后观看", "相关推荐"
     ];
     const nodes = new Set();
+    const forcedNodes = new Set();
     for (const root of roots) {
       if (!(root instanceof Element) && root !== document) continue;
+      if (root instanceof Element && root.matches(forcedChromeSelector)) forcedNodes.add(root);
+      root.querySelectorAll?.(forcedChromeSelector).forEach((node) => forcedNodes.add(node));
       const chromeSelector = "button, a, [role='button'], .bpx-player-relation-button";
       if (root instanceof Element && root.matches(chromeSelector)) nodes.add(root);
       root.querySelectorAll?.(chromeSelector).forEach((node) => nodes.add(node));
     }
+    forcedNodes.forEach(forceHidePlatformNode);
     for (const node of nodes) {
       if (!(node instanceof HTMLElement) || node.dataset.deskframeHidden === "true") continue;
       if (node.childElementCount > 4) continue;
@@ -75,8 +103,7 @@
       const clickable = node.closest("button, a, [role='button']") || node;
       const rect = clickable.getBoundingClientRect();
       if (rect.width > window.innerWidth * 0.94 && rect.height > window.innerHeight * 0.6) continue;
-      clickable.dataset.deskframeHidden = "true";
-      clickable.style.setProperty("display", "none", "important");
+      forceHidePlatformNode(clickable);
     }
   }
 
@@ -166,6 +193,8 @@
     playbackActive = typeof event.data.playbackActive === "boolean"
       ? event.data.playbackActive
       : visible;
+    installCleanPlayerStyle();
+    scrubPlatformChrome();
     applyPlayback();
   });
 
@@ -180,6 +209,7 @@
   }
 
   const observer = new MutationObserver((records) => {
+    installCleanPlayerStyle();
     for (const record of records) {
       for (const node of record.addedNodes) {
         if (!(node instanceof Element)) continue;
@@ -196,6 +226,12 @@
     observer.observe(document.documentElement, { childList: true, subtree: true });
     scrubPlatformChrome();
     applyPlayback();
+    if (isBilibili) {
+      window.setInterval(() => {
+        installCleanPlayerStyle();
+        scrubPlatformChrome();
+      }, 750);
+    }
     if (isLive) window.setInterval(monitorLivePlayback, 4000);
   };
 
