@@ -1,5 +1,23 @@
 # Changelog / 更新记录
 
+## 0.13.0 — 2026-09-17
+
+### 中文
+
+- 新增桌面游戏窗口贴片：可在 `DeskFish.exe` 中把窗口拖入投放框自动识别，或从顶层窗口列表选择。
+- Edge 扩展新增“桌面游戏窗口”来源，将真实可操作的窗口无边框贴到选中的网页图片/视频区域；支持滚动、缩放、高 DPI 与多显示器坐标更新。
+- 悬停模式由本机光标检测负责隐藏，不会因为原生窗口遮住网页而误触移开；显示时不主动抢焦点，点击画面后才操作游戏。
+- 恢复页面、切换来源、关闭页面或退出程序时会释放贴片并恢复窗口原有样式、位置与可见状态；新增 `Alt+Shift+G` 紧急隐藏快捷键。
+- 版本号升级为 0.13.0，并加入本地窗口 API、回归测试与中英文使用说明。
+
+### English
+
+- Added desktop game window overlays with drag-to-identify and top-level window list selection in `DeskFish.exe`.
+- Added a **Desktop game window** source that positions the real interactive borderless window over a selected page image or video, with scroll, resize, high-DPI, and multi-monitor coordinate updates.
+- Native cursor tracking handles hover hiding even while the game covers the DOM target. Showing the overlay does not steal focus; clicking the game activates it normally.
+- Restoring the page, changing sources, closing the page, or exiting DeskFish releases the overlay and restores the original window style, position, and visibility. `Alt+Shift+G` provides an emergency hide.
+- Bumped the release to 0.13.0 with local window APIs, regression coverage, and bilingual documentation.
+
 ## 0.12.4 — 2026-09-16
 
 ### 中文

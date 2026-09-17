@@ -31,8 +31,12 @@
     mediaConfig: {
       type: "bilibili",
       huyaRoom: "",
-      bilibiliLiveRoom: ""
+      bilibiliLiveRoom: "",
+      desktopWindowReady: false,
+      desktopWindowTitle: ""
     },
+    desktopOverlayInterval: null,
+    desktopOverlayErrorAt: 0,
     liveRecoveryAt: 0,
     comicSelection: null,
     ebook: null,
@@ -380,6 +384,9 @@
     if (state.mediaConfig.type === "comic" && !state.comicSelection?.id) {
       return "请先在扩展面板中选择一本漫画或一个章节";
     }
+    if (state.mediaConfig.type === "desktop-window" && !state.mediaConfig.desktopWindowReady) {
+      return "请先在 DeskFish.exe 中拖入或选择一个游戏窗口，再刷新扩展状态";
+    }
     return "";
   }
 
@@ -515,6 +522,64 @@
     return url.href;
   }
 
+  function desktopOverlayBounds() {
+    if (!state.wrapper?.isConnected) return null;
+    return globalThis.DeskFishMedia.calculateDesktopOverlayBounds(
+      state.wrapper.getBoundingClientRect(),
+      {
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
+        outerWidth: window.outerWidth,
+        outerHeight: window.outerHeight,
+        screenX: window.screenX,
+        screenY: window.screenY,
+        devicePixelRatio: window.devicePixelRatio
+      }
+    );
+  }
+
+  async function reportDesktopOverlay(active, visible) {
+    const bounds = active ? desktopOverlayBounds() : null;
+    const effectiveVisible = active && !bounds ? false : visible;
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: "deskframe:desktop-window-overlay",
+        overlay: {
+          active,
+          visible: effectiveVisible,
+          autoHide: Boolean(state.settings.hoverReveal),
+          claim: effectiveVisible === true,
+          sessionId: state.mediaToken,
+          left: bounds?.left || 0,
+          top: bounds?.top || 0,
+          width: bounds?.width || 0,
+          height: bounds?.height || 0
+        }
+      });
+      if (!response?.ok) throw new Error(response?.error || response?.message || "桌面窗口贴片没有响应");
+    } catch (error) {
+      const now = Date.now();
+      if (now - state.desktopOverlayErrorAt > 5000) {
+        state.desktopOverlayErrorAt = now;
+        showToast(error.message || "无法连接 DeskFish.exe");
+      }
+    }
+  }
+
+  function stopDesktopOverlayTracking(release = true) {
+    if (state.desktopOverlayInterval) window.clearInterval(state.desktopOverlayInterval);
+    state.desktopOverlayInterval = null;
+    if (release) void reportDesktopOverlay(false, false);
+  }
+
+  function startDesktopOverlayTracking() {
+    stopDesktopOverlayTracking(false);
+    state.desktopOverlayInterval = window.setInterval(() => {
+      if (!state.wrapper?.isConnected || state.activeMediaType !== "desktop-window") return;
+      void reportDesktopOverlay(true, null);
+    }, 350);
+  }
+
   function mediaDescriptor() {
     const type = state.activeMediaType || state.mediaConfig.type;
     if (type === "bilibili") {
@@ -571,6 +636,15 @@
         label: "漫画",
         detail: `${state.comicSelection.title || "漫画"}${state.comicSelection.chapterTitle ? ` · ${state.comicSelection.chapterTitle}` : ""}`,
         src: createComicUrl()
+      };
+    }
+    if (type === "desktop-window" && state.mediaConfig.desktopWindowReady) {
+      return {
+        type,
+        title: "DeskFish 桌面游戏窗口",
+        label: "游戏",
+        detail: state.mediaConfig.desktopWindowTitle || "桌面游戏窗口",
+        src: "about:blank"
       };
     }
     return null;
@@ -702,6 +776,7 @@
       setMediaReveal(true);
     });
     wrapper.addEventListener("pointerleave", () => {
+      if (state.activeMediaType === "desktop-window") return;
       state.mediaHovered = false;
       setMediaReveal(false);
     });
@@ -717,6 +792,7 @@
 
   function syncMediaVisibility(retry = false) {
     if (!state.wrapper?.isConnected) return;
+    if (state.activeMediaType === "desktop-window") return;
     const frame = state.wrapper.querySelector(".df-player-frame");
     if (!frame?.contentWindow || !state.mediaToken) return;
     const message = {
@@ -741,6 +817,10 @@
       ? Boolean(forceVisible) || state.draggingZone
       : true;
     state.wrapper.classList.toggle("is-revealed", visible);
+    if (state.activeMediaType === "desktop-window") {
+      void reportDesktopOverlay(true, visible);
+      return;
+    }
     syncMediaVisibility();
   }
 
@@ -764,14 +844,19 @@
     state.mediaToken = typeof crypto.randomUUID === "function"
       ? crypto.randomUUID()
       : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    const wasDesktopWindow = state.wrapper.classList.contains("df-desktop-window-shell");
     const descriptor = mediaDescriptor();
     if (!descriptor) {
+      if (wasDesktopWindow) stopDesktopOverlayTracking(true);
       showToast("当前替换内容还没有配置好");
       return;
     }
     const frame = state.wrapper.querySelector(".df-player-frame");
     const counter = state.wrapper.querySelector("[data-role='counter']");
     const hasPaging = descriptor.type === "bilibili" || descriptor.type === "comic";
+    const isDesktopWindow = descriptor.type === "desktop-window";
+    if (wasDesktopWindow && !isDesktopWindow) stopDesktopOverlayTracking(true);
+    state.wrapper.classList.toggle("df-desktop-window-shell", isDesktopWindow);
     if (frame) {
       frame.title = descriptor.title;
       frame.src = descriptor.src;
@@ -782,6 +867,7 @@
     }
     state.wrapper.querySelector("[data-role='previous']")?.toggleAttribute("hidden", !hasPaging);
     state.wrapper.querySelector("[data-role='next']")?.toggleAttribute("hidden", !hasPaging);
+    if (isDesktopWindow) startDesktopOverlayTracking();
     setMediaReveal(shouldRevealMedia());
     if (descriptor.type === "bilibili") chrome.storage.local.set({ currentIndex: state.currentIndex });
   }
@@ -825,6 +911,9 @@
       return { restored: false };
     }
     const target = state.originalTarget;
+    if (state.activeMediaType === "desktop-window" || state.wrapper.classList.contains("df-desktop-window-shell")) {
+      stopDesktopOverlayTracking(true);
+    }
     if (state.virtualZone) {
       state.wrapper.remove();
       target.remove();
@@ -847,6 +936,27 @@
     if (notify) showToast("已恢复原图片或视频");
     return { restored: true };
   }
+
+  document.addEventListener("visibilitychange", () => {
+    if (state.activeMediaType !== "desktop-window") return;
+    if (document.hidden) {
+      void reportDesktopOverlay(true, false);
+      return;
+    }
+    state.mediaHovered = Boolean(state.wrapper?.matches(":hover"));
+    setMediaReveal(state.mediaHovered);
+  });
+
+  window.addEventListener("pagehide", () => {
+    if (state.activeMediaType === "desktop-window") stopDesktopOverlayTracking(true);
+  });
+
+  window.addEventListener("pageshow", () => {
+    if (state.activeMediaType !== "desktop-window" || !state.wrapper?.isConnected) return;
+    startDesktopOverlayTracking();
+    state.mediaHovered = state.wrapper.matches(":hover");
+    setMediaReveal(state.mediaHovered);
+  });
 
   function readerStepPercent() {
     return clamp(Number.parseInt(state.settings.readerStepPercent, 10) || 50, 1, 100);

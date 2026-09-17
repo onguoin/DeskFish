@@ -1,6 +1,6 @@
 # DeskFish 本地阅读引擎
 
-DeskFish 的 Windows 本机伴生程序。用户只需运行发布后的 `DeskFish.exe`；它会在 `127.0.0.1:47653` 启动一个仅供 Edge 扩展访问的漫画与小说来源服务，并保留一个 Windows 托盘图标。
+DeskFish 的 Windows 本机伴生程序。用户只需运行发布后的 `DeskFish.exe`；它会在 `127.0.0.1:47653` 启动一个仅供 Edge 扩展访问的漫画、小说、直播与桌面窗口贴片服务，并保留一个 Windows 托盘图标。
 
 不需要安装 Java、Python、Node.js、Docker、Suwayomi 或单独的漫画来源插件。发布版本为 .NET 自包含单文件，运行电脑也不需要预装 .NET。
 
@@ -16,8 +16,17 @@ DeskFish 的 Windows 本机伴生程序。用户只需运行发布后的 `DeskFi
 - `GET /api/v1/novel/details?source=ID&id=书籍ID`：详情和自动生成的章节目录
 - `GET /api/v1/novel/book?source=ID&id=书籍ID`：整本纯文本和章节字符偏移
 - `GET /api/v1/image/{ticket}`：转发该次章节解析生成的短期图片票据
+- `GET /api/v1/windows`：列出可用顶层窗口和当前选择状态
+- `GET /api/v1/windows/status`：读取当前窗口贴片状态
+- `POST /api/v1/windows/overlay`：更新网页目标矩形、显示/隐藏或释放贴片
 
 图片接口不是开放代理：客户端不能提交任意图片网址，票据只能由内置来源在搜索或章节解析时生成，并会过期。HTTP CORS 只向 `chrome-extension://` 来源返回授权头。
+
+## 桌面窗口贴片
+
+主窗口会列出当前可用的顶层窗口，也提供拖入投放框识别。贴片只修改被选窗口的样式、位置、置顶和显示状态，不采集画面；释放时恢复原窗口。光标离开网页目标矩形后由本机定时器直接隐藏，因此不会受到游戏窗口遮住网页元素的影响。`Alt+Shift+G` 是本机级紧急隐藏快捷键。
+
+目标程序若以管理员身份运行，DeskFish 也需要相同权限才能控制它。独占全屏、受反作弊保护或拒绝窗口样式变更的程序不保证可用。
 
 ## 来源适配器
 

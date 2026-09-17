@@ -220,6 +220,59 @@ textarea::placeholder { color: #899b9d; }
   background: rgb(255 122 89 / 4%);
 }
 
+.desktop-window-config {
+  margin: -1px 0 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--teal);
+  border-radius: 7px;
+  background: #f5fbfa;
+}
+
+.desktop-window-state {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 24px;
+  color: var(--mint);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.desktop-window-pulse {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: var(--mist);
+  box-shadow: 0 0 0 3px rgb(96 120 123 / 10%);
+}
+
+.desktop-window-config.is-ready .desktop-window-pulse {
+  background: var(--teal);
+  box-shadow: 0 0 0 3px rgb(58 183 167 / 16%);
+}
+
+.desktop-window-config.is-error .desktop-window-pulse {
+  background: var(--coral);
+  box-shadow: 0 0 0 3px rgb(255 126 96 / 14%);
+}
+
+.desktop-window-refresh {
+  width: 100%;
+  min-height: 31px;
+  margin-top: 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--mint);
+  background: #fff;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.desktop-window-refresh:hover { border-color: var(--teal); background: #eefaf7; }
+
 .input-label {
   display: block;
   margin: 11px 0 5px;

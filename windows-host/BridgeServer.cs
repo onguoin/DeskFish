@@ -20,7 +20,7 @@ internal sealed partial class BridgeServer : IAsyncDisposable
     public static string Endpoint => Environment.GetEnvironmentVariable("DESKFISH_ENDPOINT")?.TrimEnd('/') is { Length: > 0 } configured
         ? configured
         : DefaultEndpoint;
-    public const string Version = "0.12.4";
+    public const string Version = "0.13.0";
 
     private readonly IReadOnlyDictionary<string, IMangaSource> _sources;
     private readonly IReadOnlyDictionary<string, INovelSource> _novelSources;
@@ -30,6 +30,7 @@ internal sealed partial class BridgeServer : IAsyncDisposable
     private readonly HttpClient _imageClient;
     private readonly HuyaLiveSource _huyaLiveSource = new();
     private readonly LocalCache _cache = new();
+    private readonly DesktopWindowOverlayController _desktopWindows = new();
     private WebApplication? _app;
 
     public BridgeServer()
@@ -50,9 +51,11 @@ internal sealed partial class BridgeServer : IAsyncDisposable
     }
 
     public bool IsRunning => _app is not null;
+    public DesktopWindowOverlayController DesktopWindows => _desktopWindows;
     public string SourceSummary => string.Join(" · ", _sources.Values.Select(source => source.Info.Name)
         .Concat(_novelSources.Values.Select(source => source.Info.Name))
-        .Append("虎牙直播"));
+        .Append("虎牙直播")
+        .Append("桌面窗口贴片"));
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
@@ -79,7 +82,7 @@ internal sealed partial class BridgeServer : IAsyncDisposable
                 context.Response.Headers.Vary = "Origin";
                 context.Response.Headers["Access-Control-Allow-Private-Network"] = "true";
                 context.Response.Headers.AccessControlAllowHeaders = "content-type";
-                context.Response.Headers.AccessControlAllowMethods = "GET, OPTIONS";
+                context.Response.Headers.AccessControlAllowMethods = "GET, POST, OPTIONS";
             }
             if (HttpMethods.IsOptions(context.Request.Method))
             {
@@ -110,7 +113,8 @@ internal sealed partial class BridgeServer : IAsyncDisposable
             version = Version,
             sourceCount = _sources.Count,
             novelSourceCount = _novelSources.Count,
-            liveSourceCount = 1
+            liveSourceCount = 1,
+            desktopWindowOverlay = true
         }));
         app.MapGet("/api/v1/sources", () => Results.Json(new
         {
@@ -130,6 +134,14 @@ internal sealed partial class BridgeServer : IAsyncDisposable
         app.MapGet("/api/v1/live/huya", HuyaLiveAsync);
         app.MapGet("/api/v1/live/hls/{token}/index.m3u8", HuyaPlaylistAsync);
         app.MapGet("/api/v1/live/asset/{token}", ProxyLiveAssetAsync);
+        app.MapGet("/api/v1/windows", () => Results.Json(new
+        {
+            status = _desktopWindows.Status,
+            items = _desktopWindows.ListWindows()
+        }));
+        app.MapGet("/api/v1/windows/status", () => Results.Json(_desktopWindows.Status));
+        app.MapPost("/api/v1/windows/overlay", (DesktopOverlayRequest request) =>
+            Results.Json(_desktopWindows.UpdateOverlay(request)));
 
         await app.StartAsync(cancellationToken);
         _app = app;
@@ -468,7 +480,7 @@ internal sealed partial class BridgeServer : IAsyncDisposable
     private string StatusHtml() => $$"""
         <!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
         <title>DeskFish 本地阅读引擎</title><style>:root{color-scheme:dark}body{margin:0;background:#08151a;color:#d9f3ee;font:15px/1.65 "Segoe UI",system-ui;padding:48px}main{max-width:680px;margin:auto;background:#10262d;border:1px solid #28505a;border-radius:14px;padding:30px;box-shadow:0 24px 70px #0008}h1{margin:0 0 4px;font:700 34px/1 "Bahnschrift","Microsoft YaHei UI",sans-serif;letter-spacing:.02em}b{color:#66d8c8}code{background:#071115;border:1px solid #234049;padding:3px 7px;border-radius:5px}a{color:#66d8c8}.wake{height:3px;width:92px;background:#ff7a59;margin:18px 0 24px}</style></head>
-        <body><main><h1>DeskFish</h1><p>本地漫画、小说与直播引擎</p><div class="wake"></div><p><b>● 运行正常</b> · v{{Version}}</p><p>监听地址：<code>{{Endpoint}}</code></p><p>漫画来源：{{string.Join("、", _sources.Values.Select(source => source.Info.Name))}}</p><p>小说来源：{{string.Join("、", _novelSources.Values.Select(source => source.Info.Name))}}</p><p>直播来源：虎牙公开房间 · 本地 HLS 代理</p><p>磁盘缓存：<code>{{_cache.DirectoryPath}}</code></p><p>保持 DeskFish 在后台运行，Edge 扩展即可搜索、连续阅读和播放虎牙直播。</p><p><a href="https://github.com/onguoin/DeskFish">GitHub · DeskFish</a></p></main></body></html>
+        <body><main><h1>DeskFish</h1><p>本地漫画、小说、直播与桌面窗口贴片引擎</p><div class="wake"></div><p><b>● 运行正常</b> · v{{Version}}</p><p>监听地址：<code>{{Endpoint}}</code></p><p>漫画来源：{{string.Join("、", _sources.Values.Select(source => source.Info.Name))}}</p><p>小说来源：{{string.Join("、", _novelSources.Values.Select(source => source.Info.Name))}}</p><p>直播来源：虎牙公开房间 · 本地 HLS 代理</p><p>窗口贴片：{{(_desktopWindows.Status.Selected ? _desktopWindows.Status.Window?.DisplayName : "尚未选择窗口")}}</p><p>磁盘缓存：<code>{{_cache.DirectoryPath}}</code></p><p>保持 DeskFish 在后台运行，Edge 扩展即可搜索、连续阅读、播放直播并使用桌面窗口贴片。</p><p><a href="https://github.com/onguoin/DeskFish">GitHub · DeskFish</a></p></main></body></html>
         """;
 
     public async ValueTask DisposeAsync()
@@ -482,6 +494,7 @@ internal sealed partial class BridgeServer : IAsyncDisposable
         foreach (var disposable in _sources.Values.OfType<IDisposable>()) disposable.Dispose();
         foreach (var disposable in _novelSources.Values.OfType<IDisposable>()) disposable.Dispose();
         _huyaLiveSource.Dispose();
+        _desktopWindows.Dispose();
         _imageClient.Dispose();
     }
 

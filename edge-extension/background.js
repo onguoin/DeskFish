@@ -9,9 +9,12 @@ const DEFAULT_SETTINGS = Object.freeze({
 const DEFAULT_MEDIA_CONFIG = Object.freeze({
   type: "bilibili",
   huyaRoom: "",
-  bilibiliLiveRoom: ""
+  bilibiliLiveRoom: "",
+  desktopWindowReady: false,
+  desktopWindowTitle: ""
 });
 
+const DESKFISH_LOCAL_ENDPOINT = "http://127.0.0.1:47653";
 const AD_WINDOW_STORAGE_KEY = "deskframeAdWindowId";
 const AD_WINDOW_WIDTH = 390;
 const AD_WINDOW_HEIGHT = 270;
@@ -186,6 +189,25 @@ async function sendToActivePage(type) {
   return chrome.tabs.sendMessage(tab.id, { type });
 }
 
+async function requestDesktopWindows(path, options = {}) {
+  let response;
+  try {
+    response = await fetch(`${DESKFISH_LOCAL_ENDPOINT}${path}`, {
+      cache: "no-store",
+      ...options,
+      headers: {
+        "content-type": "application/json",
+        ...(options.headers || {})
+      }
+    });
+  } catch {
+    throw new Error("无法连接 DeskFish.exe，请先启动本地程序");
+  }
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || payload.message || `本地窗口服务返回 ${response.status}`);
+  return payload;
+}
+
 function scanBilibiliDocument() {
   const found = new Map();
   const bvidPattern = /BV1[0-9A-Za-z]{9}/g;
@@ -304,6 +326,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         return { items: await resolveShortLinks(message.urls || []) };
       case "deskframe:komiic-referrer":
         return setKomiicReferrerRule(message.comicId, message.chapterId);
+      case "deskframe:desktop-window-status":
+        return requestDesktopWindows("/api/v1/windows/status");
+      case "deskframe:desktop-window-overlay":
+        return requestDesktopWindows("/api/v1/windows/overlay", {
+          method: "POST",
+          body: JSON.stringify(message.overlay || { active: false })
+        });
       case "deskframe:open-shortcuts":
         await chrome.tabs.create({ url: "edge://extensions/shortcuts" });
         return { opened: true };

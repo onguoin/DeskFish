@@ -18,7 +18,7 @@
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-ff7e60"></a>
 </p>
 
-DeskFish is a small fish living at the edge of your browser. It is made for office downtime, lunch breaks, and those quiet moments when work is slow. It does not pretend to be a productivity suite: it lets you replace an image or video area on a page with Bilibili video, Bilibili/Huya Live, a mini game, or a comic. A normal paragraph can also become a TXT ebook reader.
+DeskFish is a small fish living at the edge of your browser. It is made for office downtime, lunch breaks, and those quiet moments when work is slow. It does not pretend to be a productivity suite: it lets you replace an image or video area on a page with Bilibili video, Bilibili/Huya Live, a desktop game window, a mini game, or a comic. A normal paragraph can also become a TXT ebook reader.
 
 When a page has no suitable area, DeskFish can create one on the left, right, or as a floating panel. It can also open a browser-level retro game-ad window that survives tab changes. With hover disguise enabled, moving the pointer away restores the original page immediately; ordinary video pauses without losing its position, while live streams keep playing behind the cover.
 
@@ -37,6 +37,7 @@ When a page has no suitable area, DeskFish can create one on the left, right, or
 ## Features
 
 - **Media replacement** — replace a selected image or video area with Bilibili video, Bilibili/Huya Live, comics, or mini games.
+- **Desktop game window overlay** — drag a windowed or borderless Terraria, Minecraft, GTA V, or other game onto `DeskFish.exe`, then place the real interactive window over a page image; leaving the area instantly restores the original image.
 - **Hover disguise** — replacements appear only while hovered by default; leaving restores the page, pauses ordinary video, and keeps live streams connected.
 - **Local Huya live path** — the bundled executable resolves public rooms, falls back across CDNs, and proxies short-lived HLS segments over loopback, avoiding Huya's external “preview ended” embed.
 - **Custom regions** — create your own left, right, or floating area when the page has nothing suitable to replace.
@@ -61,12 +62,14 @@ When a page has no suitable area, DeskFish can create one on the left, right, or
 
 ## Download and install
 
-Latest version: [**Download DeskFish for Windows x64**](https://github.com/onguoin/DeskFish/releases/latest/download/DeskFish-v0.12.4-Windows-x64.zip)
+Latest version: [**Download DeskFish for Windows x64**](https://github.com/onguoin/DeskFish/releases/latest/download/DeskFish-v0.13.0-Windows-x64.zip)
 
 1. Extract the ZIP and run `DeskFish.exe`. The release is self-contained; Python, Node.js, Java, Docker, and a separate .NET installation are not required.
 2. Open `edge://extensions` in Microsoft Edge and enable **Developer mode**.
 3. Select **Load unpacked**, then choose the `edge-extension` folder from the extracted package.
-4. Pin DeskFish to the Edge toolbar. Keep `DeskFish.exe` in the system tray for local comic/novel sources and Huya Live.
+4. Pin DeskFish to the Edge toolbar. Keep `DeskFish.exe` in the system tray for local comic/novel sources, Huya Live, and desktop window overlays.
+
+Desktop game overlays require windowed or borderless-window mode. Drag the game window onto the **Window overlay** target in `DeskFish.exe` (or select it from the list), choose **Desktop game window** in the extension, and pick a page image. `Alt + Shift + G` immediately hides the overlay and returns to the browser.
 
 Windows may show **Unknown publisher** because the executable is not code-signed. Download only from this repository's Releases and compare the ZIP against the SHA-256 value in the release notes.
 
@@ -78,6 +81,7 @@ Windows may show **Unknown publisher** because the executable is not code-signed
 | Next video / next comic page | `Alt + Shift + →` |
 | Previous video / previous comic page | `Alt + Shift + ←` |
 | Show or hide video controls | `Alt + Shift + H` |
+| Emergency-hide desktop game overlay | `Alt + Shift + G` (registered by DeskFish.exe) |
 
 Set additional shortcuts at `edge://extensions/shortcuts`. Ebook arrow keys and wheel navigation activate only after clicking the replaced text, so normal page scrolling remains available.
 
@@ -108,6 +112,7 @@ Online sites may change, rate-limit traffic, or restrict access in some regions.
 - Comic metadata and downloaded public-domain book text are cached at `%LOCALAPPDATA%\DeskFrame\manga-cache-v2` and entries older than 14 days are removed. The legacy directory name is kept for data compatibility.
 - Comic images use an in-window memory cache containing up to five pages before and after the current page. Blob URLs are revoked when the reader closes.
 - The Windows service listens only on `127.0.0.1:47653`; it does not expose a LAN or public network port. Huya manifests and segments are proxied briefly over loopback and are not cached to disk.
+- Desktop overlay mode stores only the selected native window handle. It does not capture or upload frames, and releasing the overlay or exiting DeskFish restores the window's original style, position, and visibility.
 
 ## Build from source
 
@@ -117,7 +122,7 @@ Windows 10/11 and the .NET 10 SDK are required:
 ./build.ps1
 ```
 
-The package is written to `artifacts/DeskFish-v0.12.4-Windows-x64`. The Edge extension needs no build step and can be loaded directly from `edge-extension`.
+The package is written to `artifacts/DeskFish-v0.13.0-Windows-x64`. The Edge extension needs no build step and can be loaded directly from `edge-extension`.
 
 ## Repository layout
 

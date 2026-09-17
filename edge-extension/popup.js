@@ -9,13 +9,16 @@ const DEFAULT_SETTINGS = {
 const DEFAULT_MEDIA_CONFIG = {
   type: "bilibili",
   huyaRoom: "",
-  bilibiliLiveRoom: ""
+  bilibiliLiveRoom: "",
+  desktopWindowReady: false,
+  desktopWindowTitle: ""
 };
 
 const MEDIA_LABELS = {
   bilibili: "Bilibili · 横屏",
   "bilibili-live": "Bilibili 直播 · 横屏",
   huya: "虎牙直播 · 横屏",
+  "desktop-window": "桌面游戏窗口 · 可操作",
   gomoku: "五子棋 · 离线",
   "2048": "2048 · 离线",
   snake: "贪吃蛇 · 离线",
@@ -37,6 +40,9 @@ const elements = {
   huyaRoomInput: document.querySelector("#huyaRoomInput"),
   bilibiliLiveConfig: document.querySelector("#bilibiliLiveConfig"),
   bilibiliLiveRoomInput: document.querySelector("#bilibiliLiveRoomInput"),
+  desktopWindowConfig: document.querySelector("#desktopWindowConfig"),
+  desktopWindowStatus: document.querySelector("#desktopWindowStatus"),
+  desktopWindowRefresh: document.querySelector("#desktopWindowRefresh"),
   comicSection: document.querySelector("#comicSection"),
   activateButton: document.querySelector("#activateButton"),
   activateLabel: document.querySelector("#activateLabel"),
@@ -139,13 +145,14 @@ function mediaSourceReady() {
     return Boolean(globalThis.DeskFishMedia.normalizeBilibiliLiveRoom(mediaConfig.bilibiliLiveRoom));
   }
   if (mediaConfig.type === "comic") return Boolean(comicSelection?.id);
+  if (mediaConfig.type === "desktop-window") return Boolean(mediaConfig.desktopWindowReady);
   return Object.hasOwn(MEDIA_LABELS, mediaConfig.type);
 }
 
 function updateActivationAvailability() {
   elements.activateButton.disabled = !mediaSourceReady();
   elements.createZoneButton.disabled = !mediaSourceReady();
-  elements.adWindowButton.disabled = !mediaSourceReady();
+  elements.adWindowButton.disabled = !mediaSourceReady() || mediaConfig.type === "desktop-window";
 }
 
 function renderMediaConfig() {
@@ -154,13 +161,21 @@ function renderMediaConfig() {
   elements.mediaTypeSelect.value = type;
   elements.huyaConfig.hidden = type !== "huya";
   elements.bilibiliLiveConfig.hidden = type !== "bilibili-live";
+  elements.desktopWindowConfig.hidden = type !== "desktop-window";
   elements.videoLibrarySection.hidden = type !== "bilibili";
   elements.comicSection.hidden = type !== "comic";
   elements.huyaRoomInput.value = mediaConfig.huyaRoom || "";
   elements.bilibiliLiveRoomInput.value = mediaConfig.bilibiliLiveRoom || "";
   elements.sourceHint.textContent = MEDIA_LABELS[type];
+  elements.desktopWindowConfig.classList.toggle("is-ready", Boolean(mediaConfig.desktopWindowReady));
+  elements.desktopWindowConfig.classList.toggle("is-error", !mediaConfig.desktopWindowReady);
+  elements.desktopWindowStatus.textContent = mediaConfig.desktopWindowReady
+    ? `已锁定 ${mediaConfig.desktopWindowTitle || "桌面窗口"}`
+    : "尚未锁定窗口，请在 DeskFish.exe 中拖入游戏窗口";
   elements.activateLabel.textContent = type === "bilibili"
     ? "选择图片或视频"
+    : type === "desktop-window"
+      ? "把游戏窗口放进图片或视频"
     : globalThis.DeskFishMedia.isLiveMediaType(type)
       ? "用直播替换图片或视频"
       : type === "comic"
@@ -168,6 +183,33 @@ function renderMediaConfig() {
         : "用小游戏替换图片或视频";
   elements.countBadge.hidden = type !== "bilibili";
   updateActivationAvailability();
+}
+
+async function refreshDesktopWindowStatus(announce = false) {
+  elements.desktopWindowRefresh.disabled = true;
+  elements.desktopWindowStatus.textContent = "正在检测 DeskFish.exe…";
+  try {
+    const response = await sendMessage({ type: "deskframe:desktop-window-status" });
+    mediaConfig.desktopWindowReady = Boolean(response.selected);
+    mediaConfig.desktopWindowTitle = response.window
+      ? `${response.window.processName} · ${response.window.title}`
+      : "";
+    await chrome.storage.local.set({ mediaConfig });
+    renderMediaConfig();
+    if (announce) {
+      showStatus(mediaConfig.desktopWindowReady
+        ? `已识别 ${mediaConfig.desktopWindowTitle}`
+        : "DeskFish.exe 正在运行，但还没有锁定游戏窗口", !mediaConfig.desktopWindowReady);
+    }
+  } catch (error) {
+    mediaConfig.desktopWindowReady = false;
+    mediaConfig.desktopWindowTitle = "";
+    await chrome.storage.local.set({ mediaConfig });
+    renderMediaConfig();
+    if (announce || mediaConfig.type === "desktop-window") showStatus(error.message, true);
+  } finally {
+    elements.desktopWindowRefresh.disabled = false;
+  }
 }
 
 function normalizeItem(item) {
@@ -679,6 +721,7 @@ async function initialize() {
   renderPlaylist();
   renderMediaConfig();
   renderBook();
+  await refreshDesktopWindowStatus(false);
   comicSelection = await globalThis.DeskFrameComicManager.initialize({ showStatus });
   await globalThis.DeskFishNovelManager.initialize({ showStatus, importBookText: importOnlineBook });
   updateActivationAvailability();
@@ -744,6 +787,7 @@ elements.mediaTypeSelect.addEventListener("change", async () => {
   mediaConfig.type = elements.mediaTypeSelect.value;
   await chrome.storage.local.set({ mediaConfig });
   renderMediaConfig();
+  if (mediaConfig.type === "desktop-window") await refreshDesktopWindowStatus(false);
 });
 document.addEventListener("deskframe:comic-selection-changed", (event) => {
   comicSelection = event.detail || null;
@@ -759,6 +803,7 @@ elements.bilibiliLiveRoomInput.addEventListener("input", async () => {
   updateActivationAvailability();
   await chrome.storage.local.set({ mediaConfig });
 });
+elements.desktopWindowRefresh.addEventListener("click", () => refreshDesktopWindowStatus(true));
 elements.bookInput.addEventListener("change", async () => {
   const [file] = elements.bookInput.files || [];
   if (!file) return;

@@ -18,7 +18,7 @@
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-ff7e60"></a>
 </p>
 
-DeskFish 是一条藏在浏览器边上的小鱼，也是给上班摸鱼、午休和办公室无聊时刻准备的 Edge 工具。它不假装提高生产力：你可以把网页里原有的图片或视频区域换成 Bilibili 视频、Bilibili/虎牙直播、小游戏、漫画，也可以把一段普通文字换成 TXT 电子书。
+DeskFish 是一条藏在浏览器边上的小鱼，也是给上班摸鱼、午休和办公室无聊时刻准备的 Edge 工具。它不假装提高生产力：你可以把网页里原有的图片或视频区域换成 Bilibili 视频、Bilibili/虎牙直播、桌面游戏窗口、小游戏、漫画，也可以把一段普通文字换成 TXT 电子书。
 
 想要更自由一点时，还能直接在网页空白处创建一块内容区域，或者打开一个跨网页保留的浏览器级“老式传奇广告窗”。鼠标移开后，替换内容可以马上恢复成原网页；普通视频会暂停并保留进度，直播则在封面后持续播放，回来时不会断流。
 
@@ -37,6 +37,7 @@ DeskFish 是一条藏在浏览器边上的小鱼，也是给上班摸鱼、午�
 ## 功能
 
 - **网页媒体替换**：选择图片或视频区域，替换为 Bilibili 视频、Bilibili/虎牙直播、漫画或小游戏。
+- **桌面游戏窗口贴片**：把 Terraria、Minecraft、GTA V 等窗口化/无边框游戏拖进 `DeskFish.exe` 自动识别，再贴到网页图片区域；窗口保持真实可操作，移开鼠标立即恢复原图。
 - **悬停伪装**：默认仅在鼠标悬停时显示替换内容；移开立即恢复原样，普通视频自动暂停，直播持续播放。
 - **本地虎牙直播链路**：随包 EXE 解析公开房间、多 CDN 自动回退并在回环地址代理短时 HLS 分片，避免站外播放器的“试看结束”。
 - **独立内容区域**：网页没有合适素材时，可以在左侧、右侧或浮动位置创建自己的区域。
@@ -61,12 +62,14 @@ DeskFish 是一条藏在浏览器边上的小鱼，也是给上班摸鱼、午�
 
 ## 下载与安装
 
-最新版本：[**下载 DeskFish for Windows x64**](https://github.com/onguoin/DeskFish/releases/latest/download/DeskFish-v0.12.4-Windows-x64.zip)
+最新版本：[**下载 DeskFish for Windows x64**](https://github.com/onguoin/DeskFish/releases/latest/download/DeskFish-v0.13.0-Windows-x64.zip)
 
 1. 解压下载的 ZIP，先运行 `DeskFish.exe`。它是自包含程序，不需要另装 Python、Node.js、Java、Docker 或 .NET。
 2. 在 Edge 打开 `edge://extensions`，开启右上角“开发人员模式”。
 3. 点击“加载解压缩的扩展”，选择压缩包中的 `edge-extension` 文件夹。
-4. 建议把 DeskFish 固定到浏览器工具栏。使用本地漫画/小说来源或虎牙直播时，让 `DeskFish.exe` 留在托盘运行即可。
+4. 建议把 DeskFish 固定到浏览器工具栏。使用本地漫画/小说、虎牙直播或桌面窗口贴片时，让 `DeskFish.exe` 留在托盘运行即可。
+
+桌面游戏贴片要求游戏使用窗口化或无边框窗口模式。打开 `DeskFish.exe`，把游戏窗口拖到“窗口贴片”投放框内松开（也可从列表选择），再在扩展中选择“桌面游戏窗口”和网页图片区域。`Alt + Shift + G` 可随时紧急隐藏贴片并返回浏览器。
 
 Windows 可能因为程序尚未购买代码签名证书而显示“未知发布者”。请只从本仓库的 Releases 下载，并可用 Release 页面提供的 SHA-256 校验压缩包。
 
@@ -78,6 +81,7 @@ Windows 可能因为程序尚未购买代码签名证书而显示“未知发布
 | 下一条视频 / 下一页漫画 | `Alt + Shift + →` |
 | 上一条视频 / 上一页漫画 | `Alt + Shift + ←` |
 | 显示或隐藏视频控制栏 | `Alt + Shift + H` |
+| 紧急隐藏桌面游戏贴片 | `Alt + Shift + G`（由 DeskFish.exe 注册） |
 
 其余快捷键可以在 `edge://extensions/shortcuts` 中自行设置。电子书方向键和滚轮只在你点击过被替换文字后接管，避免影响网页正常滚动。
 
@@ -108,6 +112,7 @@ Windows 可能因为程序尚未购买代码签名证书而显示“未知发布
 - 本地漫画元数据和在线公版书正文缓存在 `%LOCALAPPDATA%\DeskFrame\manga-cache-v2`，超过 14 天自动清理；保留旧目录名是为了兼容早期版本的数据。
 - 漫画图片使用窗口内存缓存，默认最多保留当前页前后各 5 页；离开阅读器会撤销 Blob URL 并释放缓存。
 - Windows 本地服务只监听 `127.0.0.1:47653`，不会对局域网或公网开放端口。虎牙直播清单与分片只做短时回环代理，不写入磁盘缓存。
+- 桌面窗口贴片只保存当前选择的窗口句柄，不录屏、不上传画面；释放贴片或退出 DeskFish 时会恢复窗口原有样式、位置和可见状态。
 
 ## 从源码构建
 
@@ -117,7 +122,7 @@ Windows 可能因为程序尚未购买代码签名证书而显示“未知发布
 ./build.ps1
 ```
 
-输出位于 `artifacts/DeskFish-v0.12.4-Windows-x64`。Edge 扩展本身无需编译，直接加载 `edge-extension` 文件夹即可。
+输出位于 `artifacts/DeskFish-v0.13.0-Windows-x64`。Edge 扩展本身无需编译，直接加载 `edge-extension` 文件夹即可。
 
 ## 项目结构
 

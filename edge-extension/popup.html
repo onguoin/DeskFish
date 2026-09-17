@@ -29,6 +29,7 @@
             <option value="bilibili">Bilibili 视频队列</option>
             <option value="bilibili-live">Bilibili 直播间</option>
             <option value="huya">虎牙直播间</option>
+            <option value="desktop-window">桌面游戏窗口</option>
             <option value="gomoku">五子棋 · 人机对战</option>
             <option value="2048">2048</option>
             <option value="snake">贪吃蛇</option>
@@ -44,6 +45,14 @@
           <label class="input-label" for="bilibiliLiveRoomInput">Bilibili 房间号或直播间链接</label>
           <input id="bilibiliLiveRoomInput" class="room-input" type="text" inputmode="numeric" spellcheck="false" placeholder="例如 23058 或 live.bilibili.com/23058">
           <p class="source-note">使用 Bilibili 官方直播播放器；鼠标移开只隐藏画面，不会暂停直播。</p>
+        </div>
+        <div id="desktopWindowConfig" class="desktop-window-config" hidden>
+          <div class="desktop-window-state">
+            <span class="desktop-window-pulse" aria-hidden="true"></span>
+            <span id="desktopWindowStatus">正在检测 DeskFish.exe…</span>
+          </div>
+          <button id="desktopWindowRefresh" class="desktop-window-refresh" type="button">刷新窗口识别状态</button>
+          <p class="source-note">在 DeskFish.exe 中把游戏窗口拖到投放框，或从窗口列表选择；网页悬停时显示真实可操作窗口，移开即恢复原图。</p>
         </div>
         <button id="activateButton" class="primary-action" type="button">
           <span id="activateLabel">选择图片或视频</span>
@@ -254,7 +263,7 @@
         <button id="shortcutsButton" class="shortcut-link" type="button">快捷键未生效？打开 Edge 快捷键设置</button>
         <div class="footer-meta">
           <a href="https://github.com/onguoin/DeskFish" target="_blank" rel="noreferrer">GitHub · DeskFish <span>↗</span></a>
-          <span>DeskFish v0.12.4</span>
+          <span>DeskFish v0.13.0</span>
         </div>
       </footer>
 

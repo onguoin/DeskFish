@@ -122,6 +122,20 @@ picture.df-original-cover > img,
   pointer-events: none !important;
 }
 
+.df-player-shell.df-desktop-window-shell .df-player-frame,
+.df-player-shell.df-desktop-window-shell.is-revealed .df-player-frame {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.df-player-shell.df-desktop-window-shell .df-original-cover,
+.df-player-shell.df-desktop-window-shell.is-revealed .df-original-cover {
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
 .df-toolbar {
   position: absolute !important;
   top: 7px !important;

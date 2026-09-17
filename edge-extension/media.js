@@ -30,6 +30,26 @@
     return isLiveMediaType(type) || Boolean(revealed);
   }
 
+  function calculateDesktopOverlayBounds(rect, viewport = {}) {
+    const innerWidth = Number(viewport.innerWidth) || 0;
+    const innerHeight = Number(viewport.innerHeight) || 0;
+    const left = Math.max(0, Number(rect?.left) || 0);
+    const top = Math.max(0, Number(rect?.top) || 0);
+    const right = Math.min(innerWidth, Number(rect?.right) || 0);
+    const bottom = Math.min(innerHeight, Number(rect?.bottom) || 0);
+    if (right - left < 48 || bottom - top < 32) return null;
+
+    const sideInset = Math.max(0, ((Number(viewport.outerWidth) || innerWidth) - innerWidth) / 2);
+    const topInset = Math.max(0, (Number(viewport.outerHeight) || innerHeight) - innerHeight - sideInset);
+    const scale = Number(viewport.devicePixelRatio) || 1;
+    return {
+      left: Math.round(((Number(viewport.screenX) || 0) + sideInset + left) * scale),
+      top: Math.round(((Number(viewport.screenY) || 0) + topInset + top) * scale),
+      width: Math.round((right - left) * scale),
+      height: Math.round((bottom - top) * scale)
+    };
+  }
+
   function createBilibiliLivePlayerUrl(roomValue, settings = {}, bridge = {}) {
     const room = normalizeBilibiliLiveRoom(roomValue);
     if (!room) return "";
@@ -60,6 +80,7 @@
     normalizeBilibiliLiveRoom,
     isLiveMediaType,
     shouldKeepPlaying,
+    calculateDesktopOverlayBounds,
     createBilibiliLivePlayerUrl
   });
 });
