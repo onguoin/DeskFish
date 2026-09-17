@@ -73,6 +73,10 @@ Desktop game overlays require windowed or borderless-window mode. Drag the game 
 
 Windows may show **Unknown publisher** because the executable is not code-signed. Download only from this repository's Releases and compare the ZIP against the SHA-256 value in the release notes.
 
+## What changed in each release
+
+Every GitHub Release lists its additions, improvements, fixes, usage notes, known limitations, upgrade steps, and package SHA-256. [CHANGELOG.md](CHANGELOG.md) keeps the complete bilingual history. The release-note checklist and template live in [docs/RELEASING.md](docs/RELEASING.md).
+
 ## Default shortcuts
 
 | Action | Shortcut |

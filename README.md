@@ -73,6 +73,10 @@ DeskFish 是一条藏在浏览器边上的小鱼，也是给上班摸鱼、午�
 
 Windows 可能因为程序尚未购买代码签名证书而显示“未知发布者”。请只从本仓库的 Releases 下载，并可用 Release 页面提供的 SHA-256 校验压缩包。
 
+## 版本更新内容
+
+每个 GitHub Release 都会明确列出本次新增、改进、修复、使用方法、已知限制、升级步骤和安装包 SHA-256；仓库中的 [CHANGELOG.md](CHANGELOG.md) 保留全部中英文版本记录。发布说明格式见 [docs/RELEASING.md](docs/RELEASING.md)。
+
 ## 默认快捷键
 
 | 操作 | 快捷键 |
